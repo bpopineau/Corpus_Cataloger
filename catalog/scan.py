@@ -172,6 +172,24 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
 
     emit_progress("database", inserted_total, total, "Waiting for first batch...")
 
+    def insert_batch(rows: List[Dict]):
+        if not rows:
+            return
+        cur.executemany(
+            """INSERT INTO files
+            (scan_run_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc,
+             owner, flags, mime_hint, quick_hash, sha256, is_pdf_born_digital, state, error_code, error_msg, last_seen_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            [
+                (scan_run_id, r.get("path_abs"), r.get("dir"), r.get("name"), r.get("ext"), r.get("size_bytes"),
+                 r.get("mtime_utc"), r.get("ctime_utc"), r.get("owner"), r.get("flags"), r.get("mime_hint"),
+                 r.get("quick_hash"), r.get("sha256"), r.get("is_pdf_born_digital"), r.get("state"),
+                 r.get("error_code"), r.get("error_msg"), r.get("last_seen_at"))
+                for r in rows
+            ]
+        )
+        con.commit()
+
     def flush_batch() -> None:
         nonlocal inserted_total, batch_rows
         if not batch_rows:
@@ -226,24 +244,6 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
                 emit_log(f"[PROCESS] {i}/{total} files processed")
 
     flush_batch()
-
-    def insert_batch(rows: List[Dict]):
-        if not rows:
-            return
-        cur.executemany(
-            """INSERT INTO files
-            (scan_run_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc,
-             owner, flags, mime_hint, quick_hash, sha256, is_pdf_born_digital, state, error_code, error_msg, last_seen_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            [
-                (scan_run_id, r.get("path_abs"), r.get("dir"), r.get("name"), r.get("ext"), r.get("size_bytes"),
-                 r.get("mtime_utc"), r.get("ctime_utc"), r.get("owner"), r.get("flags"), r.get("mime_hint"),
-                 r.get("quick_hash"), r.get("sha256"), r.get("is_pdf_born_digital"), r.get("state"),
-                 r.get("error_code"), r.get("error_msg"), r.get("last_seen_at"))
-                for r in rows
-            ]
-        )
-        con.commit()
 
     total_records = inserted_total
 
