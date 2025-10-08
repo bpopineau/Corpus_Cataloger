@@ -3,7 +3,7 @@ import os, sqlite3, subprocess, sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
-from PySide6.QtCore import Qt, QModelIndex
+from PySide6.QtCore import Qt, QModelIndex, QPersistentModelIndex
 
 from .config import CatalogConfig, ScannerConfig, load_config
 from .scan import scan_root
@@ -58,9 +58,19 @@ class ScanWorker(QtCore.QObject):
         return cfg
 
 
-FILE_PATH_ROLE = Qt.UserRole + 1
-IS_DIRECTORY_ROLE = Qt.UserRole + 2
-ROW_DATA_ROLE = Qt.UserRole + 3
+DISPLAY_ROLE = int(Qt.ItemDataRole.DisplayRole)
+USER_ROLE = int(Qt.ItemDataRole.UserRole)
+TOOLTIP_ROLE = int(Qt.ItemDataRole.ToolTipRole)
+
+NO_ITEM_FLAGS = Qt.ItemFlag.NoItemFlags
+ENABLED_ITEM_FLAG = Qt.ItemFlag.ItemIsEnabled
+SELECTABLE_ITEM_FLAG = Qt.ItemFlag.ItemIsSelectable
+CASE_INSENSITIVE = Qt.CaseSensitivity.CaseInsensitive
+SPLIT_HORIZONTAL = Qt.Orientation.Horizontal
+
+FILE_PATH_ROLE = USER_ROLE + 1
+IS_DIRECTORY_ROLE = USER_ROLE + 2
+ROW_DATA_ROLE = USER_ROLE + 3
 
 
 def format_bytes(size: Optional[int]) -> str:
@@ -93,31 +103,31 @@ class FileTableModel(QtCore.QAbstractTableModel):
         super().__init__(parent)
         self._rows: List[Dict[str, Any]] = []
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
         return len(self._rows)
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return len(self.COLUMNS)
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
+    def data(self, index: QModelIndex | QPersistentModelIndex, role: int = DISPLAY_ROLE) -> Any:
         if not index.isValid():
             return None
         row = self._rows[index.row()]
         key = self.COLUMNS[index.column()][0]
         value = row.get(key)
-        if role == Qt.DisplayRole:
+        if role == DISPLAY_ROLE:
             if key == "size_bytes":
                 return format_bytes(value)
             if value is None:
                 return ""
             return value
-        if role == Qt.UserRole:
+        if role == USER_ROLE:
             if key == "size_bytes":
                 return value or 0
             return value or ""
-        if role == Qt.ToolTipRole:
+        if role == TOOLTIP_ROLE:
             if key in {"name", "dir"}:
                 return row.get("path_abs")
             if key == "error_msg" and value:
@@ -126,15 +136,15 @@ class FileTableModel(QtCore.QAbstractTableModel):
             return row
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = DISPLAY_ROLE) -> Any:
+        if orientation == Qt.Orientation.Horizontal and role == DISPLAY_ROLE:
             return self.COLUMNS[section][1]
         return super().headerData(section, orientation, role)
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex | QPersistentModelIndex):
         if not index.isValid():
-            return Qt.NoItemFlags
-        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+            return NO_ITEM_FLAGS
+        return ENABLED_ITEM_FLAG | SELECTABLE_ITEM_FLAG
 
     def set_rows(self, rows: List[Dict[str, Any]]) -> None:
         self.beginResetModel()
@@ -168,7 +178,7 @@ class FileFilterProxyModel(QtCore.QSortFilterProxyModel):
     def matches(self, row: Dict[str, Any]) -> bool:
         return self._accept_row(row)
 
-    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex) -> bool:
         row: Dict[str, Any]
         if self._row_accessor:
             row = self._row_accessor(source_row)
@@ -244,20 +254,20 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.proxyModel = FileFilterProxyModel(self)
         self.proxyModel.setSourceModel(self.tableModel)
         self.proxyModel.setRowAccessor(self.tableModel.row_data)
-        self.proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.proxyModel.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.proxyModel.setSortRole(QtCore.Qt.UserRole)
+        self.proxyModel.setFilterCaseSensitivity(CASE_INSENSITIVE)
+        self.proxyModel.setSortCaseSensitivity(CASE_INSENSITIVE)
+        self.proxyModel.setSortRole(USER_ROLE)
 
         self.tableView = QtWidgets.QTableView()
         self.tableView.setModel(self.proxyModel)
         self.tableView.setSortingEnabled(True)
-        self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.tableView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tableView.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView.customContextMenuRequested.connect(self._show_table_context_menu)
         header = self.tableView.horizontalHeader()
         header.setStretchLastSection(True)
-        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Stretch)
         self.tableView.doubleClicked.connect(self._handle_table_double_click)
         self.stack.addWidget(self.tableView)
 
@@ -269,7 +279,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.treeView.setSortingEnabled(True)
         self.treeView.doubleClicked.connect(self._handle_tree_double_click)
         self.treeView.header().setStretchLastSection(True)
-        self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeView.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self._show_tree_context_menu)
         self.stack.addWidget(self.treeView)
 
@@ -336,7 +346,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.statusLabel.setText(f"Loaded {len(rows)} files from {db_path}")
 
     def _update_state_options(self, rows: List[Dict[str, Any]]) -> None:
-        states = sorted({row.get("state") for row in rows if row.get("state")})
+        states = sorted({str(state) for state in (row.get("state") for row in rows) if state})
         current = self.stateCombo.currentText()
         self.stateCombo.blockSignals(True)
         self.stateCombo.clear()
@@ -414,7 +424,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
 
         size_item = QtGui.QStandardItem(format_bytes(row.get("size_bytes")))
         size_item.setEditable(False)
-        size_item.setData(row.get("size_bytes") or 0, QtCore.Qt.UserRole)
+        size_item.setData(row.get("size_bytes") or 0, USER_ROLE)
 
         ext_item = QtGui.QStandardItem(row.get("ext") or "")
         ext_item.setEditable(False)
@@ -634,7 +644,7 @@ class MainWindow(QtWidgets.QMainWindow):
         leftLayout.addWidget(self.logView, 2)
 
         self.fileExplorer = FileExplorerWidget(self._current_db_path, self)
-        splitter = QtWidgets.QSplitter(Qt.Horizontal)
+        splitter = QtWidgets.QSplitter(SPLIT_HORIZONTAL)
         splitter.addWidget(leftPane)
         splitter.addWidget(self.fileExplorer)
         splitter.setStretchFactor(0, 1)
