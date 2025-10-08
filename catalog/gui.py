@@ -144,9 +144,7 @@ class FileTableModel(QtCore.QAbstractTableModel):
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        count = len(self._rows)
-        print(f"🔍 DEBUG: FileTableModel.rowCount() returning {count}")
-        return count
+        return len(self._rows)
 
     def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return len(self.COLUMNS)
@@ -187,14 +185,10 @@ class FileTableModel(QtCore.QAbstractTableModel):
         return ENABLED_ITEM_FLAG | SELECTABLE_ITEM_FLAG
 
     def set_rows(self, rows: Sequence[Any]) -> None:
-        print(f"🔍 DEBUG: FileTableModel.set_rows called with {len(rows)} rows")
+        print(f"� Updating table model with {len(rows)} rows")
         self.beginResetModel()
         self._rows = list(rows)
-        print(f"🔍 DEBUG: FileTableModel._rows now contains {len(self._rows)} rows")
-        if self._rows:
-            print(f"🔍 DEBUG: First row in model: {row_as_dict(self._rows[0])}")
         self.endResetModel()
-        print(f"🔍 DEBUG: FileTableModel.set_rows complete, model reset")
 
     def row_data(self, row: int) -> Dict[str, Any]:
         if 0 <= row < len(self._rows):
@@ -277,6 +271,15 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self._active_db_path: Optional[Path] = None
         self._tree_dirty = True
         self._tree_row_limit = 50000
+        
+        # Pagination state
+        self._current_page = 1
+        self._page_size = 100
+        self._total_rows = 0
+        
+        # Sorting state
+        self._sort_column = "path_abs"  # Default sort column
+        self._sort_ascending = True     # Default sort direction
 
         layout = QtWidgets.QVBoxLayout(self)
 
@@ -304,6 +307,47 @@ class FileExplorerWidget(QtWidgets.QWidget):
         toolbar.addWidget(self.refreshBtn)
         layout.addLayout(toolbar)
 
+        # Pagination controls
+        pagination_layout = QtWidgets.QHBoxLayout()
+        
+        self.pageSizeLabel = QtWidgets.QLabel("Items per page:")
+        self.pageSizeCombo = QtWidgets.QComboBox()
+        self.pageSizeCombo.addItems(["50", "100", "250", "500", "1000"])
+        self.pageSizeCombo.setCurrentText("100")
+        
+        pagination_layout.addWidget(self.pageSizeLabel)
+        pagination_layout.addWidget(self.pageSizeCombo)
+        pagination_layout.addSpacing(20)
+        
+        self.firstPageBtn = QtWidgets.QPushButton("<<")
+        self.firstPageBtn.setFixedWidth(40)
+        self.firstPageBtn.setToolTip("First page")
+        
+        self.prevPageBtn = QtWidgets.QPushButton("<")
+        self.prevPageBtn.setFixedWidth(40)
+        self.prevPageBtn.setToolTip("Previous page")
+        
+        self.pageInfoLabel = QtWidgets.QLabel("Page 1")
+        self.pageInfoLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pageInfoLabel.setMinimumWidth(150)
+        
+        self.nextPageBtn = QtWidgets.QPushButton(">")
+        self.nextPageBtn.setFixedWidth(40)
+        self.nextPageBtn.setToolTip("Next page")
+        
+        self.lastPageBtn = QtWidgets.QPushButton(">>")
+        self.lastPageBtn.setFixedWidth(40)
+        self.lastPageBtn.setToolTip("Last page")
+        
+        pagination_layout.addWidget(self.firstPageBtn)
+        pagination_layout.addWidget(self.prevPageBtn)
+        pagination_layout.addWidget(self.pageInfoLabel)
+        pagination_layout.addWidget(self.nextPageBtn)
+        pagination_layout.addWidget(self.lastPageBtn)
+        pagination_layout.addStretch()
+        
+        layout.addLayout(pagination_layout)
+
         self.stack = QtWidgets.QStackedWidget()
         layout.addWidget(self.stack, 1)
 
@@ -314,7 +358,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.proxyModel.setRowAccessor(lambda idx: row_as_dict(self.tableModel.raw_row(idx)))
         self.proxyModel.setFilterCaseSensitivity(CASE_INSENSITIVE)
         self.proxyModel.setSortCaseSensitivity(CASE_INSENSITIVE)
-        self.proxyModel.setSortRole(USER_ROLE)
+        # Disable proxy model sorting - we do database-level sorting instead
+        self.proxyModel.setDynamicSortFilter(False)
 
         self.tableView = QtWidgets.QTableView()
         self.tableView.setModel(self.proxyModel)
@@ -326,6 +371,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         header.setStretchLastSection(True)
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        header.sortIndicatorChanged.connect(self._on_sort_changed)
         self.tableView.doubleClicked.connect(self._handle_table_double_click)
         self.stack.addWidget(self.tableView)
 
@@ -348,6 +394,14 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.stateCombo.currentTextChanged.connect(self._on_state_change)
         self.viewToggle.idToggled.connect(self._on_view_toggled)
         self.refreshBtn.clicked.connect(self.refresh_data)
+        
+        # Connect pagination controls
+        self.pageSizeCombo.currentTextChanged.connect(self._on_page_size_changed)
+        self.firstPageBtn.clicked.connect(self._go_to_first_page)
+        self.prevPageBtn.clicked.connect(self._go_to_prev_page)
+        self.nextPageBtn.clicked.connect(self._go_to_next_page)
+        self.lastPageBtn.clicked.connect(self._go_to_last_page)
+        
         self.destroyed.connect(lambda *_: self.shutdown())
 
     def mark_stale(self) -> None:
@@ -355,22 +409,24 @@ class FileExplorerWidget(QtWidgets.QWidget):
 
     def ensure_loaded(self) -> None:
         db_path = self._db_path_provider()
-        print(f"🔍 DEBUG: ensure_loaded called. DB path: {db_path}")
-        print(f"🔍 DEBUG: _needs_reload: {self._needs_reload}, cached_path: {self._cached_db_path}")
+        # Only refresh if we really need to reload or path changed
         if self._needs_reload or self._cached_db_path != db_path:
-            print(f"🔍 DEBUG: Triggering refresh_data()")
-            self.refresh_data()
+            # Don't reload if we're already loading
+            if not self._loading:
+                self.refresh_data()
         else:
-            print(f"🔍 DEBUG: No reload needed, data should already be loaded")
+            # Data is already current for this path - no action needed
+            print(f"📋 Data already loaded for {db_path} - skipping reload")
 
     def refresh_data(self) -> None:
         db_path = self._db_path_provider()
-        print(f"🔍 DEBUG: refresh_data called with db_path: {db_path}")
         self._requested_db_path = db_path
         if not db_path.exists():
             print(f"🔍 DEBUG: Database not found: {db_path}")
             self._rows = []
+            self._total_rows = 0
             self._update_models([])
+            self._update_pagination_controls()
             self.statusLabel.setText(f"Database not found: {db_path}")
             self._needs_reload = True
             self._cached_db_path = None
@@ -383,14 +439,21 @@ class FileExplorerWidget(QtWidgets.QWidget):
             return
         print(f"🔍 DEBUG: Starting load...")
         
-        # TEMP: Try synchronous loading for debugging
-        print(f"🔍 DEBUG: TEMP - trying synchronous load...")
+        # Set loading state to prevent multiple simultaneous loads
+        self._loading = True
+        self._active_db_path = db_path
+        self._needs_reload = False
+        
+        # Get current filter settings
+        filter_text = self.filterEdit.text().strip().lower()
+        state_filter = self.stateCombo.currentText()
+        
+        # Use synchronous loading (workaround for threading callback issue)
         try:
-            rows = self._fetch_rows(db_path)
-            print(f"🔍 DEBUG: TEMP - synchronous fetch got {len(rows)} rows")
-            self._handle_future_success(db_path, rows)
+            rows, total_count = self._fetch_rows(db_path, self._current_page, self._page_size, filter_text, state_filter, self._sort_column, self._sort_ascending)
+            self._handle_future_success(db_path, rows, total_count)
         except Exception as e:
-            print(f"🔍 DEBUG: TEMP - synchronous fetch failed: {e}")
+            print(f"❌ Failed to load data: {e}")
             self._handle_future_failure(db_path, str(e))
         
         # Keep the async version for comparison
@@ -415,18 +478,96 @@ class FileExplorerWidget(QtWidgets.QWidget):
         print(f"🔍 DEBUG: _start_load: Future setup complete")
 
     @staticmethod
-    def _fetch_rows(db_path: Path) -> List[Any]:
-        print(f"🔍 DEBUG: _fetch_rows called with db_path: {db_path}")
+    def _fetch_rows(db_path: Path, page: int = 1, page_size: int = 100, filter_text: str = "", state_filter: str = "All", sort_column: str = "path_abs", sort_ascending: bool = True) -> tuple[List[Any], int]:
+        """Fetch a page of rows from the database along with the total count."""
+        print(f"🔍 DEBUG: _fetch_rows called with db_path: {db_path}, page: {page}, page_size: {page_size}, sort: {sort_column} {'ASC' if sort_ascending else 'DESC'}")
+        
         with sqlite3.connect(str(db_path)) as con:
             con.row_factory = sqlite3.Row
             cur = con.cursor()
-            cur.execute(
-                """SELECT file_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_msg FROM files"""
-            )
+            
+            # Build WHERE clause based on filters
+            where_conditions = []
+            params = []
+            
+            if state_filter and state_filter != "All":
+                where_conditions.append("state = ?")
+                params.append(state_filter)
+            
+            if filter_text:
+                filter_like = f"%{filter_text}%"
+                where_conditions.append(
+                    "(path_abs LIKE ? OR name LIKE ? OR ext LIKE ? OR state LIKE ? OR error_msg LIKE ?)"
+                )
+                params.extend([filter_like] * 5)
+            
+            where_clause = " WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+            
+            # Get total count with filters applied
+            count_query = f"SELECT COUNT(*) FROM files{where_clause}"
+            cur.execute(count_query, params)
+            total_count = cur.fetchone()[0]
+            print(f"🔍 DEBUG: Total count with filters: {total_count}")
+            
+            # Build ORDER BY clause
+            sort_direction = "ASC" if sort_ascending else "DESC"
+            order_by_clause = f"ORDER BY {sort_column} {sort_direction}"
+            
+            # Fetch the page of data
+            offset = (page - 1) * page_size
+            data_query = f"""
+                SELECT file_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_msg 
+                FROM files
+                {where_clause}
+                {order_by_clause}
+                LIMIT ? OFFSET ?
+            """
+            cur.execute(data_query, params + [page_size, offset])
             rows = cur.fetchall()
-            print(f"🔍 DEBUG: _fetch_rows fetched {len(rows)} rows from database")
+            print(f"🔍 DEBUG: _fetch_rows fetched {len(rows)} rows from database (offset={offset})")
             if rows:
                 print(f"🔍 DEBUG: First row sample: {dict(rows[0])}")
+            
+            return rows, total_count
+    
+    @staticmethod
+    def _fetch_all_rows(db_path: Path, filter_text: str = "", state_filter: str = "All", limit: int = 50000) -> List[Any]:
+        """Fetch all rows matching filters (up to limit) for tree view - no pagination."""
+        print(f"🔍 DEBUG: _fetch_all_rows called with db_path: {db_path}, limit: {limit}")
+        
+        with sqlite3.connect(str(db_path)) as con:
+            con.row_factory = sqlite3.Row
+            cur = con.cursor()
+            
+            # Build WHERE clause based on filters
+            where_conditions = []
+            params = []
+            
+            if state_filter and state_filter != "All":
+                where_conditions.append("state = ?")
+                params.append(state_filter)
+            
+            if filter_text:
+                filter_like = f"%{filter_text}%"
+                where_conditions.append(
+                    "(path_abs LIKE ? OR name LIKE ? OR ext LIKE ? OR state LIKE ? OR error_msg LIKE ?)"
+                )
+                params.extend([filter_like] * 5)
+            
+            where_clause = " WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+            
+            # Fetch all matching data (with limit for performance)
+            data_query = f"""
+                SELECT file_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_msg 
+                FROM files
+                {where_clause}
+                ORDER BY path_abs
+                LIMIT ?
+            """
+            cur.execute(data_query, params + [limit])
+            rows = cur.fetchall()
+            print(f"🔍 DEBUG: _fetch_all_rows fetched {len(rows)} rows from database")
+            
             return rows
 
     def _on_future_done(self, path: Path, future: Future) -> None:
@@ -441,8 +582,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
             print(f"🔍 DEBUG: Scheduling _handle_future_success via QTimer")
             QtCore.QTimer.singleShot(0, lambda: self._handle_future_success(path, rows))
 
-    def _handle_future_success(self, path: Path, rows: Sequence[Any]) -> None:
-        print(f"🔍 DEBUG: _handle_future_success called with {len(rows)} rows")
+    def _handle_future_success(self, path: Path, rows: Sequence[Any], total_count: int = 0) -> None:
+        print(f"🔍 DEBUG: _handle_future_success called with {len(rows)} rows, total_count={total_count}")
         self._current_future = None
         # Check if path still matches what was requested
         if self._requested_db_path != path:
@@ -450,13 +591,22 @@ class FileExplorerWidget(QtWidgets.QWidget):
             self._finish_loading()
             return
         self._rows = list(rows)
-        print(f"🔍 DEBUG: Set self._rows to {len(self._rows)} rows")
+        self._total_rows = total_count
+        print(f"🔍 DEBUG: Set self._rows to {len(self._rows)} rows, total_rows={self._total_rows}")
         self._cached_db_path = path
-        self._update_state_options(self._rows)
+        self._needs_reload = False  # Clear reload flag since we just loaded successfully
+        self._update_state_options_from_db(path)
         print(f"🔍 DEBUG: About to call _update_models with {len(self._rows)} rows")
         self._update_models(self._rows)
+        self._update_pagination_controls()
         print(f"🔍 DEBUG: Called _update_models, setting status label")
-        self.statusLabel.setText(f"Loaded {len(self._rows)} files from {path}")
+        
+        # Calculate display range
+        start_idx = (self._current_page - 1) * self._page_size + 1
+        end_idx = min(start_idx + len(self._rows) - 1, self._total_rows)
+        total_pages = (self._total_rows + self._page_size - 1) // self._page_size if self._page_size > 0 else 1
+        
+        self.statusLabel.setText(f"Showing {start_idx}-{end_idx} of {self._total_rows:,} files (Page {self._current_page} of {total_pages})")
         self._finish_loading()
 
     def _handle_future_failure(self, path: Path, error: str) -> None:
@@ -487,25 +637,32 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self._loading = False
         self._active_db_path = None
 
-    def _update_state_options(self, rows: Sequence[Any]) -> None:
-        states = sorted({str(state) for state in (row_get(row, "state") for row in rows) if state})
-        current = self.stateCombo.currentText()
-        self.stateCombo.blockSignals(True)
-        self.stateCombo.clear()
-        self.stateCombo.addItem("All")
-        for state in states:
-            self.stateCombo.addItem(state)
-        if current and self.stateCombo.findText(current) >= 0:
-            self.stateCombo.setCurrentText(current)
-        self.stateCombo.blockSignals(False)
+    def _update_state_options_from_db(self, db_path: Path) -> None:
+        """Query database for distinct states instead of scanning loaded rows."""
+        try:
+            with sqlite3.connect(str(db_path)) as con:
+                cur = con.cursor()
+                cur.execute("SELECT DISTINCT state FROM files WHERE state IS NOT NULL ORDER BY state")
+                states = [row[0] for row in cur.fetchall()]
+            
+            current = self.stateCombo.currentText()
+            self.stateCombo.blockSignals(True)
+            self.stateCombo.clear()
+            self.stateCombo.addItem("All")
+            for state in states:
+                self.stateCombo.addItem(state)
+            if current and self.stateCombo.findText(current) >= 0:
+                self.stateCombo.setCurrentText(current)
+            self.stateCombo.blockSignals(False)
+        except Exception as e:
+            print(f"⚠️ Failed to update state options: {e}")
 
     def _update_models(self, rows: Sequence[Any]) -> None:
         print(f"🔍 DEBUG: _update_models called with {len(rows)} rows")
         print(f"🔍 DEBUG: About to call tableModel.set_rows")
         self.tableModel.set_rows(rows)
-        print(f"🔍 DEBUG: Called tableModel.set_rows, now invalidating proxy filter")
-        self.proxyModel.invalidateFilter()
-        print(f"🔍 DEBUG: Proxy filter invalidated, setting tree dirty")
+        print(f"🔍 DEBUG: Called tableModel.set_rows")
+        # No need to invalidate proxy filter - we're doing server-side filtering now
         self._tree_dirty = True
         self._maybe_rebuild_tree()
         print(f"🔍 DEBUG: _update_models complete")
@@ -552,21 +709,41 @@ class FileExplorerWidget(QtWidgets.QWidget):
             parent_item.appendRow(file_items)
 
         self.treeView.expandToDepth(0)
+        
+        # Update tooltip to explain tree view shows all matching data
         if truncated:
             self.treeView.setToolTip(
-                f"Tree view truncated to first {limit:,} entries (of {len(rows):,}). Apply filters to narrow results."
+                f"Tree view truncated to first {limit:,} entries (of {len(rows):,} matching). "
+                f"Apply filters to narrow results. Tree shows ALL matching files, not just current page."
             )
         else:
-            self.treeView.setToolTip("")
+            self.treeView.setToolTip(
+                f"Tree view shows all {len(rows):,} matching entries. "
+                f"Table view shows page {self._current_page} of paginated results."
+            )
 
     def _maybe_rebuild_tree(self) -> None:
         if self.stack.currentWidget() is not self.treeView:
             return
         if not self._tree_dirty:
             return
-        filtered_rows = [row for row in (row_as_dict(r) for r in self._rows) if self.proxyModel.matches(row)]
-        self._rebuild_tree(filtered_rows)
-        self._tree_dirty = False
+        
+        # Tree view shows ALL matching rows (not paginated)
+        db_path = self._db_path_provider()
+        if not db_path.exists():
+            self._tree_dirty = False
+            return
+        
+        try:
+            filter_text = self.filterEdit.text().strip().lower()
+            state_filter = self.stateCombo.currentText()
+            # Fetch all matching rows for tree (up to limit)
+            all_rows = self._fetch_all_rows(db_path, filter_text, state_filter, self._tree_row_limit)
+            self._rebuild_tree(all_rows)
+            self._tree_dirty = False
+        except Exception as e:
+            print(f"❌ Failed to build tree: {e}")
+            self._tree_dirty = False
 
     def _create_dir_items(self, name: str, full_path: str) -> List[QtGui.QStandardItem]:
         name_item = QtGui.QStandardItem(name)
@@ -601,14 +778,88 @@ class FileExplorerWidget(QtWidgets.QWidget):
         return [name_item, size_item, ext_item, state_item]
 
     def _on_filter_text(self, text: str) -> None:
-        self.proxyModel.setFilterText(text)
+        # Reset to page 1 when filter changes
+        self._current_page = 1
+        self.refresh_data()
         self._tree_dirty = True
-        self._maybe_rebuild_tree()
 
     def _on_state_change(self, state: str) -> None:
-        self.proxyModel.setStateFilter(state)
+        # Reset to page 1 when state filter changes
+        self._current_page = 1
+        self.refresh_data()
         self._tree_dirty = True
-        self._maybe_rebuild_tree()
+    
+    def _on_sort_changed(self, logical_index: int, order: Qt.SortOrder) -> None:
+        """Handle table header sort changes - applies to entire database."""
+        # Map column index to database column name
+        column_map = {
+            0: "name",
+            1: "ext",
+            2: "dir",
+            3: "size_bytes",
+            4: "mtime_utc",
+            5: "ctime_utc",
+            6: "state",
+            7: "error_msg",
+        }
+        
+        if logical_index in column_map:
+            self._sort_column = column_map[logical_index]
+            self._sort_ascending = (order == Qt.SortOrder.AscendingOrder)
+            print(f"🔍 DEBUG: Sort changed to {self._sort_column} {'ASC' if self._sort_ascending else 'DESC'}")
+            # Don't reset to page 1 on sort - stay on current page
+            self.refresh_data()
+    
+    def _on_page_size_changed(self, size_text: str) -> None:
+        """Handle page size change."""
+        try:
+            new_size = int(size_text)
+            if new_size != self._page_size:
+                self._page_size = new_size
+                self._current_page = 1  # Reset to first page
+                self.refresh_data()
+        except ValueError:
+            pass
+    
+    def _go_to_first_page(self) -> None:
+        """Navigate to first page."""
+        if self._current_page != 1:
+            self._current_page = 1
+            self.refresh_data()
+    
+    def _go_to_prev_page(self) -> None:
+        """Navigate to previous page."""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self.refresh_data()
+    
+    def _go_to_next_page(self) -> None:
+        """Navigate to next page."""
+        total_pages = (self._total_rows + self._page_size - 1) // self._page_size if self._page_size > 0 else 1
+        if self._current_page < total_pages:
+            self._current_page += 1
+            self.refresh_data()
+    
+    def _go_to_last_page(self) -> None:
+        """Navigate to last page."""
+        total_pages = (self._total_rows + self._page_size - 1) // self._page_size if self._page_size > 0 else 1
+        if self._current_page != total_pages and total_pages > 0:
+            self._current_page = total_pages
+            self.refresh_data()
+    
+    def _update_pagination_controls(self) -> None:
+        """Update pagination button states and page info label."""
+        total_pages = (self._total_rows + self._page_size - 1) // self._page_size if self._page_size > 0 else 1
+        total_pages = max(1, total_pages)
+        
+        # Update button states
+        self.firstPageBtn.setEnabled(self._current_page > 1)
+        self.prevPageBtn.setEnabled(self._current_page > 1)
+        self.nextPageBtn.setEnabled(self._current_page < total_pages)
+        self.lastPageBtn.setEnabled(self._current_page < total_pages)
+        
+        # Update page info label
+        self.pageInfoLabel.setText(f"Page {self._current_page} of {total_pages}")
 
     def _on_view_toggled(self, button_id: int, checked: bool) -> None:
         if not checked:
@@ -860,6 +1111,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._scan_worker: Optional[ScanWorker] = None
 
         self.fileExplorer.mark_stale()
+        self.fileExplorer.ensure_loaded()  # Initial data load
         self.refresh_stats()
 
     def refresh_stats(self) -> None:
@@ -871,7 +1123,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dbProgress.setRange(0, 0)
             if explorer:
                 explorer.mark_stale()
-                explorer.ensure_loaded()
             return
 
         try:
@@ -902,10 +1153,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dbProgress.setRange(0, 0)
             if explorer:
                 explorer.mark_stale()
-                explorer.ensure_loaded()
-        else:
-            if explorer:
-                explorer.ensure_loaded()
+        # Data loading handled separately by file explorer when needed
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self.fileExplorer.shutdown()
