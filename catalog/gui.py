@@ -144,7 +144,9 @@ class FileTableModel(QtCore.QAbstractTableModel):
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return len(self._rows)
+        count = len(self._rows)
+        print(f"🔍 DEBUG: FileTableModel.rowCount() returning {count}")
+        return count
 
     def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return len(self.COLUMNS)
@@ -185,9 +187,14 @@ class FileTableModel(QtCore.QAbstractTableModel):
         return ENABLED_ITEM_FLAG | SELECTABLE_ITEM_FLAG
 
     def set_rows(self, rows: Sequence[Any]) -> None:
+        print(f"🔍 DEBUG: FileTableModel.set_rows called with {len(rows)} rows")
         self.beginResetModel()
         self._rows = list(rows)
+        print(f"🔍 DEBUG: FileTableModel._rows now contains {len(self._rows)} rows")
+        if self._rows:
+            print(f"🔍 DEBUG: First row in model: {row_as_dict(self._rows[0])}")
         self.endResetModel()
+        print(f"🔍 DEBUG: FileTableModel.set_rows complete, model reset")
 
     def row_data(self, row: int) -> Dict[str, Any]:
         if 0 <= row < len(self._rows):
@@ -348,13 +355,20 @@ class FileExplorerWidget(QtWidgets.QWidget):
 
     def ensure_loaded(self) -> None:
         db_path = self._db_path_provider()
+        print(f"🔍 DEBUG: ensure_loaded called. DB path: {db_path}")
+        print(f"🔍 DEBUG: _needs_reload: {self._needs_reload}, cached_path: {self._cached_db_path}")
         if self._needs_reload or self._cached_db_path != db_path:
+            print(f"🔍 DEBUG: Triggering refresh_data()")
             self.refresh_data()
+        else:
+            print(f"🔍 DEBUG: No reload needed, data should already be loaded")
 
     def refresh_data(self) -> None:
         db_path = self._db_path_provider()
+        print(f"🔍 DEBUG: refresh_data called with db_path: {db_path}")
         self._requested_db_path = db_path
         if not db_path.exists():
+            print(f"🔍 DEBUG: Database not found: {db_path}")
             self._rows = []
             self._update_models([])
             self.statusLabel.setText(f"Database not found: {db_path}")
@@ -362,48 +376,86 @@ class FileExplorerWidget(QtWidgets.QWidget):
             self._cached_db_path = None
             return
         if self._loading:
+            print(f"🔍 DEBUG: Already loading, _loading={self._loading}")
             if self._active_db_path is not None and self._active_db_path != db_path:
+                print(f"🔍 DEBUG: Setting pending reload")
                 self._pending_reload = True
             return
-        self._start_load(db_path)
+        print(f"🔍 DEBUG: Starting load...")
+        
+        # TEMP: Try synchronous loading for debugging
+        print(f"🔍 DEBUG: TEMP - trying synchronous load...")
+        try:
+            rows = self._fetch_rows(db_path)
+            print(f"🔍 DEBUG: TEMP - synchronous fetch got {len(rows)} rows")
+            self._handle_future_success(db_path, rows)
+        except Exception as e:
+            print(f"🔍 DEBUG: TEMP - synchronous fetch failed: {e}")
+            self._handle_future_failure(db_path, str(e))
+        
+        # Keep the async version for comparison
+        # self._start_load(db_path)
 
     def _start_load(self, db_path: Path) -> None:
         if self._executor is None:
+            print("🔍 DEBUG: _start_load: executor is None!")
             return
+        print(f"🔍 DEBUG: _start_load: Setting up load for {db_path}")
         self._loading = True
         self._pending_reload = False
         self._needs_reload = False
         self._active_db_path = Path(db_path)
         self.statusLabel.setText(f"Loading files from {db_path}...")
+        print(f"🔍 DEBUG: _start_load: Submitting _fetch_rows to executor")
         future = self._executor.submit(self._fetch_rows, Path(db_path))
         self._current_future = future
-        future.add_done_callback(partial(self._on_future_done, Path(db_path)))
+        print(f"🔍 DEBUG: _start_load: Adding done_callback to future")
+        callback = partial(self._on_future_done, Path(db_path))
+        future.add_done_callback(callback)
+        print(f"🔍 DEBUG: _start_load: Future setup complete")
 
     @staticmethod
     def _fetch_rows(db_path: Path) -> List[Any]:
+        print(f"🔍 DEBUG: _fetch_rows called with db_path: {db_path}")
         with sqlite3.connect(str(db_path)) as con:
             con.row_factory = sqlite3.Row
             cur = con.cursor()
             cur.execute(
                 """SELECT file_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_msg FROM files"""
             )
-            return cur.fetchall()
+            rows = cur.fetchall()
+            print(f"🔍 DEBUG: _fetch_rows fetched {len(rows)} rows from database")
+            if rows:
+                print(f"🔍 DEBUG: First row sample: {dict(rows[0])}")
+            return rows
 
     def _on_future_done(self, path: Path, future: Future) -> None:
+        print(f"🔍 DEBUG: _on_future_done called! path={path}")
         try:
             rows = future.result()
+            print(f"🔍 DEBUG: Future completed successfully with {len(rows)} rows")
         except Exception as exc:
+            print(f"🔍 DEBUG: Future failed with exception: {exc}")
             QtCore.QTimer.singleShot(0, lambda: self._handle_future_failure(path, str(exc)))
         else:
+            print(f"🔍 DEBUG: Scheduling _handle_future_success via QTimer")
             QtCore.QTimer.singleShot(0, lambda: self._handle_future_success(path, rows))
 
     def _handle_future_success(self, path: Path, rows: Sequence[Any]) -> None:
+        print(f"🔍 DEBUG: _handle_future_success called with {len(rows)} rows")
         self._current_future = None
+        # Check if path still matches what was requested
+        if self._requested_db_path != path:
+            print(f"🔍 DEBUG: Path mismatch! Requested: {self._requested_db_path}, Got: {path}")
+            self._finish_loading()
+            return
         self._rows = list(rows)
+        print(f"🔍 DEBUG: Set self._rows to {len(self._rows)} rows")
         self._cached_db_path = path
-        self._requested_db_path = path
         self._update_state_options(self._rows)
+        print(f"🔍 DEBUG: About to call _update_models with {len(self._rows)} rows")
         self._update_models(self._rows)
+        print(f"🔍 DEBUG: Called _update_models, setting status label")
         self.statusLabel.setText(f"Loaded {len(self._rows)} files from {path}")
         self._finish_loading()
 
@@ -448,10 +500,15 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.stateCombo.blockSignals(False)
 
     def _update_models(self, rows: Sequence[Any]) -> None:
+        print(f"🔍 DEBUG: _update_models called with {len(rows)} rows")
+        print(f"🔍 DEBUG: About to call tableModel.set_rows")
         self.tableModel.set_rows(rows)
+        print(f"🔍 DEBUG: Called tableModel.set_rows, now invalidating proxy filter")
         self.proxyModel.invalidateFilter()
+        print(f"🔍 DEBUG: Proxy filter invalidated, setting tree dirty")
         self._tree_dirty = True
         self._maybe_rebuild_tree()
+        print(f"🔍 DEBUG: _update_models complete")
 
     def _rebuild_tree(self, rows: Sequence[Any]) -> None:
         self.treeModel.removeRows(0, self.treeModel.rowCount())
@@ -636,6 +693,12 @@ class FileExplorerWidget(QtWidgets.QWidget):
         if not path:
             return
         p = Path(path)
+        # Validate path to prevent traversal attacks
+        try:
+            p = p.resolve()
+        except (OSError, RuntimeError) as e:
+            QtWidgets.QMessageBox.warning(self, "Invalid path", f"Invalid path:\n{e}")
+            return
         if not p.exists():
             QtWidgets.QMessageBox.warning(self, "File missing", f"File not found on disk:\n{path}")
             return
@@ -647,12 +710,19 @@ class FileExplorerWidget(QtWidgets.QWidget):
             else:
                 subprocess.Popen(["xdg-open", str(p)])
         except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Open failed", f"Could not open file:\n{e}")
+            import traceback
+            QtWidgets.QMessageBox.critical(self, "Open failed", f"Could not open file:\n{e}\n\n{traceback.format_exc()}")
 
     def _reveal_in_explorer(self, path: Optional[str]) -> None:
         if not path:
             return
         p = Path(path)
+        # Validate path to prevent traversal attacks
+        try:
+            p = p.resolve()
+        except (OSError, RuntimeError) as e:
+            QtWidgets.QMessageBox.warning(self, "Invalid path", f"Invalid path:\n{e}")
+            return
         if not p.exists():
             QtWidgets.QMessageBox.warning(self, "Path missing", f"Path not found on disk:\n{path}")
             return
@@ -671,7 +741,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
                 target = p if p.is_dir() else p.parent
                 subprocess.Popen(["xdg-open", str(target)])
         except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Open failed", f"Could not open location:\n{e}")
+            import traceback
+            QtWidgets.QMessageBox.critical(self, "Open failed", f"Could not open location:\n{e}\n\n{traceback.format_exc()}")
 
     def _copy_path(self, path: Optional[str]) -> None:
         if not path:
@@ -806,14 +877,17 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             with sqlite3.connect(str(db_path)) as con:
                 cur = con.cursor()
-                cur.execute("SELECT COUNT(*) FROM files")
-                total = cur.fetchone()[0]
-                cur.execute("SELECT COUNT(*) FROM files WHERE state='done'")
-                done = cur.fetchone()[0]
-                cur.execute("SELECT COUNT(*) FROM files WHERE state IN ('pending','quick_hashed','sha_pending')")
-                pending = cur.fetchone()[0]
-                cur.execute("SELECT COUNT(*) FROM files WHERE state='error'")
-                err = cur.fetchone()[0]
+                # Optimize: use single query with GROUP BY instead of 4 separate queries
+                cur.execute("""
+                    SELECT 
+                        COUNT(*) as total,
+                        SUM(CASE WHEN state='done' THEN 1 ELSE 0 END) as done,
+                        SUM(CASE WHEN state IN ('pending','quick_hashed','sha_pending') THEN 1 ELSE 0 END) as pending,
+                        SUM(CASE WHEN state='error' THEN 1 ELSE 0 END) as errors
+                    FROM files
+                """)
+                row = cur.fetchone()
+                total, done, pending, err = row if row else (0, 0, 0, 0)
 
             self.dbStats.setPlainText(f"Total: {total}\nDone: {done}\nPending: {pending}\nErrors: {err}")
             if total > 0:
@@ -822,7 +896,9 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.dbProgress.setRange(0, 0)
         except Exception as e:
-            self.dbStats.setPlainText(f"Error: {e}")
+            import traceback
+            error_msg = f"Error: {e}\n{traceback.format_exc()}"
+            self.dbStats.setPlainText(error_msg)
             self.dbProgress.setRange(0, 0)
             if explorer:
                 explorer.mark_stale()

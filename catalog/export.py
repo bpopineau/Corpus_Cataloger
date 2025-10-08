@@ -11,8 +11,15 @@ def main():
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    
+    # Validate database path exists
+    db_path = Path(args.db)
+    if not db_path.exists():
+        raise FileNotFoundError(f"Database not found: {db_path}")
+    
     con = duckdb.connect(database=":memory:")
-    con.execute(f"ATTACH DATABASE '{args.db}' AS cat (TYPE SQLITE);")
+    # Use parameterized query to prevent SQL injection
+    con.execute("ATTACH DATABASE ? AS cat (TYPE SQLITE);", (str(db_path),))
     con.execute("COPY (SELECT * FROM cat.files) TO ? (FORMAT PARQUET, OVERWRITE TRUE);", (str(out / "files.parquet"),))
     con.execute("COPY (SELECT * FROM cat.scans) TO ? (FORMAT PARQUET, OVERWRITE TRUE);", (str(out / "scans.parquet"),))
     con.close()
