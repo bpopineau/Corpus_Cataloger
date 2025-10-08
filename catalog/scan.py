@@ -25,6 +25,29 @@ ProgressCallback = Callable[[str, int, int, str], None]
 LogCallback = Callable[[str], None]
 
 
+def _error_record(path: Path, code: str, message: str) -> Dict:
+    now = datetime.utcnow().isoformat()+"Z"
+    return dict(
+        path_abs=str(path),
+        dir=str(path.parent),
+        name=path.name,
+        ext=path.suffix.lower(),
+        size_bytes=0,
+        mtime_utc=now,
+        ctime_utc=now,
+        owner=None,
+        flags=None,
+        mime_hint=None,
+        quick_hash=None,
+        sha256=None,
+        is_pdf_born_digital=None,
+        state="error",
+        error_code=code,
+        error_msg=message,
+        last_seen_at=now,
+    )
+
+
 def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallback] = None, log_cb: Optional[LogCallback] = None) -> None:
     def emit_progress(stage: str, current: int, total: int, message: str) -> None:
         if not progress_cb:
@@ -110,50 +133,101 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
     emit_log(f"[INFO] {root}: {total} candidate files across {dir_count} folders")
 
     def process(path: Path) -> Dict:
-        st = path.stat()
-        size = st.st_size
-        mtime = utc(st.st_mtime)
-        ctime = utc(st.st_ctime)
-        qh = quick_hash(path, cfg.scanner.io_chunk_bytes)
-        ext = path.suffix.lower()
-        return dict(
-            path_abs=str(path),
-            dir=str(path.parent),
-            name=path.name,
-            ext=ext,
-            size_bytes=size,
-            mtime_utc=mtime,
-            ctime_utc=ctime,
-            owner=None,
-            flags=None,
-            mime_hint=None,
-            quick_hash=qh,
-            sha256=None,
-            is_pdf_born_digital=None,
-            state="quick_hashed",
-            error_code=None,
-            error_msg=None,
-            last_seen_at=datetime.utcnow().isoformat()+"Z",
-        )
+        try:
+            st = path.stat()
+            size = st.st_size
+            mtime = utc(st.st_mtime)
+            ctime = utc(st.st_ctime)
+            qh = quick_hash(path, cfg.scanner.io_chunk_bytes)
+            ext = path.suffix.lower()
+            return dict(
+                path_abs=str(path),
+                dir=str(path.parent),
+                name=path.name,
+                ext=ext,
+                size_bytes=size,
+                mtime_utc=mtime,
+                ctime_utc=ctime,
+                owner=None,
+                flags=None,
+                mime_hint=None,
+                quick_hash=qh,
+                sha256=None,
+                is_pdf_born_digital=None,
+                state="quick_hashed",
+                error_code=None,
+                error_msg=None,
+                last_seen_at=datetime.utcnow().isoformat()+"Z",
+            )
+        except Exception as e:
+            return _error_record(path, "process", str(e))
 
-    ok_rows: List[Dict] = []
+    batch_rows: List[Dict] = []
+    batch_size = 1000
+    inserted_total = 0
     if total:
         emit_progress("processing", 0, total, f"Hashing metadata for {total} files")
         emit_log(f"[INFO] Processing {total} files with up to {cfg.scanner.max_workers} workers")
     else:
         emit_progress("processing", 0, 0, "No files to process")
         emit_log("[INFO] Nothing to process; skipping hashing stage")
+
+    emit_progress("database", inserted_total, total, "Waiting for first batch...")
+
+    def flush_batch() -> None:
+        nonlocal inserted_total
+        if not batch_rows:
+            return
+        batch_size_now = len(batch_rows)
+        insert_batch(batch_rows)
+        inserted_total += batch_size_now
+        batch_rows.clear()
+        if total > 0:
+            emit_progress("database", inserted_total, total, f"Inserted {inserted_total}/{total} records")
+            emit_log(f"[DB] inserted {inserted_total}/{total}")
+        else:
+            emit_progress("database", inserted_total, inserted_total, f"Inserted {inserted_total} records")
+            emit_log(f"[DB] inserted {inserted_total} records")
+
     with ThreadPoolExecutor(max_workers=cfg.scanner.max_workers) as ex:
-        futs = [ex.submit(process, p) for p in files_to_process]
-        for i, fut in enumerate(as_completed(futs), 1):
+        fut_map = {ex.submit(process, p): p for p in files_to_process}
+        for i, fut in enumerate(as_completed(fut_map), 1):
             try:
-                ok_rows.append(fut.result())
+                row = fut.result()
             except Exception as e:
-                ok_rows.append(dict(path_abs="", state="error", error_code="process", error_msg=str(e)))
+                path = fut_map.get(fut)
+                if path is not None:
+                    row = _error_record(path, "process", str(e))
+                else:
+                    now = datetime.utcnow().isoformat()+"Z"
+                    row = dict(
+                        path_abs="",
+                        dir="",
+                        name="",
+                        ext="",
+                        size_bytes=0,
+                        mtime_utc=now,
+                        ctime_utc=now,
+                        owner=None,
+                        flags=None,
+                        mime_hint=None,
+                        quick_hash=None,
+                        sha256=None,
+                        is_pdf_born_digital=None,
+                        state="error",
+                        error_code="process",
+                        error_msg=str(e),
+                        last_seen_at=now,
+                    )
+            batch_rows.append(row)
+            if len(batch_rows) >= batch_size:
+                flush_batch()
             if total:
                 emit_progress("processing", i, total, f"Processed {i} of {total} files")
             if total and (i % 500 == 0 or i == total):
                 emit_log(f"[PROCESS] {i}/{total} files processed")
+
+    flush_batch()
 
     def insert_batch(rows: List[Dict]):
         if not rows:
@@ -173,13 +247,7 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
         )
         con.commit()
 
-    batch_size = 1000
-    emit_progress("database", 0, len(ok_rows), "Writing records to database...")
-    for i in range(0, len(ok_rows), batch_size):
-        insert_batch(ok_rows[i:i+batch_size])
-        completed = min(i + batch_size, len(ok_rows))
-        emit_progress("database", completed, len(ok_rows), f"Inserted {completed}/{len(ok_rows)} records")
-        emit_log(f"[DB] inserted {completed}/{len(ok_rows)}")
+    total_records = inserted_total
 
     # Compute sha256 for groups that look like duplicates (same size + quick_hash)
     cur.execute(
@@ -231,7 +299,7 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
     cur.execute("UPDATE files SET state='done' WHERE scan_run_id=? AND state='quick_hashed'", (scan_run_id,))
     con.commit()
     con.close()
-    emit_progress("done", len(ok_rows), len(ok_rows), "Scan complete")
+    emit_progress("done", total_records, total if total else total_records, "Scan complete")
     emit_log("[DONE] scan complete.")
 
 def main():
