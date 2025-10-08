@@ -173,19 +173,19 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
     emit_progress("database", inserted_total, total, "Waiting for first batch...")
 
     def flush_batch() -> None:
-        nonlocal inserted_total
+        nonlocal inserted_total, batch_rows
         if not batch_rows:
             return
         batch_size_now = len(batch_rows)
         insert_batch(batch_rows)
         inserted_total += batch_size_now
-        batch_rows.clear()
         if total > 0:
             emit_progress("database", inserted_total, total, f"Inserted {inserted_total}/{total} records")
             emit_log(f"[DB] inserted {inserted_total}/{total}")
         else:
             emit_progress("database", inserted_total, inserted_total, f"Inserted {inserted_total} records")
             emit_log(f"[DB] inserted {inserted_total} records")
+        batch_rows = []
 
     with ThreadPoolExecutor(max_workers=cfg.scanner.max_workers) as ex:
         fut_map = {ex.submit(process, p): p for p in files_to_process}
