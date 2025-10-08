@@ -2,6 +2,8 @@ from __future__ import annotations
 import os, sqlite3, subprocess, sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+from functools import partial
+from concurrent.futures import Future, ThreadPoolExecutor
 from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtCore import Qt, QModelIndex, QPersistentModelIndex
 
@@ -219,6 +221,14 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self._cached_db_path: Optional[Path] = None
         self._rows: List[Dict[str, Any]] = []
         self._needs_reload = True
+        self._executor: Optional[ThreadPoolExecutor] = ThreadPoolExecutor(max_workers=1)
+        self._current_future: Optional[Future] = None
+        self._loading = False
+        self._pending_reload = False
+        self._requested_db_path: Optional[Path] = None
+        self._active_db_path: Optional[Path] = None
+        self._tree_dirty = True
+        self._tree_row_limit = 50000
 
         layout = QtWidgets.QVBoxLayout(self)
 
@@ -290,6 +300,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.stateCombo.currentTextChanged.connect(self._on_state_change)
         self.viewToggle.idToggled.connect(self._on_view_toggled)
         self.refreshBtn.clicked.connect(self.refresh_data)
+        self.destroyed.connect(lambda *_: self.shutdown())
 
     def mark_stale(self) -> None:
         self._needs_reload = True
@@ -301,20 +312,40 @@ class FileExplorerWidget(QtWidgets.QWidget):
 
     def refresh_data(self) -> None:
         db_path = self._db_path_provider()
-        self._cached_db_path = db_path
+        self._requested_db_path = db_path
         if not db_path.exists():
             self._rows = []
             self._update_models([])
             self.statusLabel.setText(f"Database not found: {db_path}")
             self._needs_reload = True
+            self._cached_db_path = None
             return
-        try:
-            con = sqlite3.connect(str(db_path))
+        if self._loading:
+            if self._active_db_path is not None and self._active_db_path != db_path:
+                self._pending_reload = True
+            return
+        self._start_load(db_path)
+
+    def _start_load(self, db_path: Path) -> None:
+        if self._executor is None:
+            return
+        self._loading = True
+        self._pending_reload = False
+        self._needs_reload = False
+        self._active_db_path = Path(db_path)
+        self.statusLabel.setText(f"Loading files from {db_path}...")
+        future = self._executor.submit(self._fetch_rows, Path(db_path))
+        self._current_future = future
+        future.add_done_callback(partial(self._on_future_done, Path(db_path)))
+
+    @staticmethod
+    def _fetch_rows(db_path: Path) -> List[Dict[str, Any]]:
+        with sqlite3.connect(str(db_path)) as con:
             cur = con.cursor()
             cur.execute(
                 """SELECT file_id, scan_run_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_code, error_msg FROM files"""
             )
-            rows = [
+            return [
                 dict(
                     file_id=row[0],
                     scan_run_id=row[1],
@@ -331,19 +362,52 @@ class FileExplorerWidget(QtWidgets.QWidget):
                 )
                 for row in cur.fetchall()
             ]
-            con.close()
-        except Exception as e:
-            self._rows = []
-            self._update_models([])
-            self.statusLabel.setText(f"Error loading files: {e}")
-            self._needs_reload = True
-            return
 
+    def _on_future_done(self, path: Path, future: Future) -> None:
+        try:
+            rows = future.result()
+        except Exception as exc:
+            QtCore.QTimer.singleShot(0, lambda: self._handle_future_failure(path, str(exc)))
+        else:
+            QtCore.QTimer.singleShot(0, lambda: self._handle_future_success(path, rows))
+
+    def _handle_future_success(self, path: Path, rows: List[Dict[str, Any]]) -> None:
+        self._current_future = None
         self._rows = rows
-        self._needs_reload = False
+        self._cached_db_path = path
+        self._requested_db_path = path
         self._update_state_options(rows)
         self._update_models(rows)
-        self.statusLabel.setText(f"Loaded {len(rows)} files from {db_path}")
+        self.statusLabel.setText(f"Loaded {len(rows)} files from {path}")
+        self._finish_loading()
+
+    def _handle_future_failure(self, path: Path, error: str) -> None:
+        self._current_future = None
+        self._rows = []
+        self._update_models([])
+        self.statusLabel.setText(f"Error loading {path}: {error}")
+        self._needs_reload = True
+        self._cached_db_path = None
+        self._finish_loading()
+
+    def _finish_loading(self) -> None:
+        self._loading = False
+        self._active_db_path = None
+        if self._pending_reload:
+            self._pending_reload = False
+            QtCore.QTimer.singleShot(0, self.refresh_data)
+
+    def shutdown(self) -> None:
+        self._pending_reload = False
+        future = self._current_future
+        if future and not future.done():
+            future.cancel()
+        self._current_future = None
+        if self._executor is not None:
+            self._executor.shutdown(wait=True)
+            self._executor = None
+        self._loading = False
+        self._active_db_path = None
 
     def _update_state_options(self, rows: List[Dict[str, Any]]) -> None:
         states = sorted({str(state) for state in (row.get("state") for row in rows) if state})
@@ -360,15 +424,21 @@ class FileExplorerWidget(QtWidgets.QWidget):
     def _update_models(self, rows: List[Dict[str, Any]]) -> None:
         self.tableModel.set_rows(rows)
         self.proxyModel.invalidateFilter()
-        filtered_rows = [row for row in rows if self.proxyModel.matches(row)]
-        self._rebuild_tree(filtered_rows)
+        self._tree_dirty = True
+        self._maybe_rebuild_tree()
 
     def _rebuild_tree(self, rows: List[Dict[str, Any]]) -> None:
         self.treeModel.removeRows(0, self.treeModel.rowCount())
         root = self.treeModel.invisibleRootItem()
         nodes: Dict[str, QtGui.QStandardItem] = {}
 
-        for row in rows:
+        truncated = False
+        limit = self._tree_row_limit
+
+        for idx, row in enumerate(rows):
+            if limit and idx >= limit:
+                truncated = True
+                break
             path_str = row.get("path_abs")
             if not path_str:
                 continue
@@ -401,6 +471,19 @@ class FileExplorerWidget(QtWidgets.QWidget):
             parent_item.appendRow(file_items)
 
         self.treeView.expandToDepth(0)
+        if truncated:
+            self.treeView.setToolTip(f"Tree view truncated to first {limit:,} entries (of {len(rows):,}). Apply filters to narrow results.")
+        else:
+            self.treeView.setToolTip("")
+
+    def _maybe_rebuild_tree(self) -> None:
+        if self.stack.currentWidget() is not self.treeView:
+            return
+        if not self._tree_dirty:
+            return
+        filtered_rows = [row for row in self._rows if self.proxyModel.matches(row)]
+        self._rebuild_tree(filtered_rows)
+        self._tree_dirty = False
 
     def _create_dir_items(self, name: str, full_path: str) -> List[QtGui.QStandardItem]:
         name_item = QtGui.QStandardItem(name)
@@ -436,16 +519,19 @@ class FileExplorerWidget(QtWidgets.QWidget):
 
     def _on_filter_text(self, text: str) -> None:
         self.proxyModel.setFilterText(text)
-        self._update_models(self._rows)
+        self._tree_dirty = True
+        self._maybe_rebuild_tree()
 
     def _on_state_change(self, state: str) -> None:
         self.proxyModel.setStateFilter(state)
-        self._update_models(self._rows)
+        self._tree_dirty = True
+        self._maybe_rebuild_tree()
 
     def _on_view_toggled(self, button_id: int, checked: bool) -> None:
         if not checked:
             return
         self.stack.setCurrentIndex(button_id)
+        self._maybe_rebuild_tree()
 
     def _handle_table_double_click(self, index: QtCore.QModelIndex) -> None:
         if not index.isValid():
@@ -718,6 +804,10 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             if explorer:
                 explorer.ensure_loaded()
+
+        def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+            self.fileExplorer.shutdown()
+            super().closeEvent(event)
 
     def _refresh_all(self) -> None:
         self.fileExplorer.mark_stale()
