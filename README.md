@@ -12,3 +12,11 @@ Quick start:
    ```powershell
    python -m catalog.export --db data/projects.db --out data/parquet
    ```
+
+## Development
+
+For static type checking with mypy or editor integrations, the project ships the `types-PyYAML` stub package alongside runtime dependencies. If you installed requirements before this addition, re-run the install step to pick up the updated stubs:
+
+```powershell
+pip install -r requirements.txt
+```

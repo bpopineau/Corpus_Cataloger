@@ -1,6 +1,7 @@
 pyside6
 pydantic>=2
 pyyaml
+types-PyYAML
 xxhash
 python-magic-bin; platform_system == "Windows"
 python-magic; platform_system != "Windows"
