@@ -1,11 +1,15 @@
 from __future__ import annotations
 from pathlib import Path
 import hashlib
+from typing import Any
 
+_xxhash: Any
 try:
-    import xxhash
+    import xxhash as _xxhash
 except Exception:
-    xxhash = None
+    _xxhash = None
+
+xxhash: Any = _xxhash
 
 def quick_hash(path: Path, head_tail_bytes: int = 65536) -> str:
     size = path.stat().st_size

@@ -1,1 +1,3 @@
-from .gui import main; main()
+from catalog.gui import main
+
+main()

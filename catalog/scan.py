@@ -1,8 +1,8 @@
 # catalog/scan.py
 from __future__ import annotations
-import argparse, os, socket, getpass
+import argparse, os, socket, getpass, importlib
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 from datetime import datetime, timezone
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,10 +11,15 @@ from .config import load_config, CatalogConfig
 from .db import connect, migrate
 from .util import quick_hash, sha256_file
 
+PdfReaderFactory = Callable[[str], Any]
+
+pdf_reader: Optional[PdfReaderFactory]
 try:
-    from pypdf import PdfReader
+    _pypdf = importlib.import_module("pypdf")
 except Exception:
-    PdfReader = None
+    pdf_reader = None
+else:
+    pdf_reader = cast(Optional[PdfReaderFactory], getattr(_pypdf, "PdfReader", None))
 
 def utc(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
@@ -27,10 +32,10 @@ def should_skip_path(p: Path, excludes: List[str]) -> bool:
     return False
 
 def born_digital_pdf(path: Path, pages: int) -> Optional[int]:
-    if PdfReader is None:
+    if pdf_reader is None:
         return None
     try:
-        r = PdfReader(str(path))
+        r = pdf_reader(str(path))
         n = min(len(r.pages), max(1, pages))
         for i in range(n):
             t = r.pages[i].extract_text() or ""

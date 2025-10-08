@@ -1,1 +1,3 @@
-from .scan import main; main()
+from catalog.scan import main
+
+main()
