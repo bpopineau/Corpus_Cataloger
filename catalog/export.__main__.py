@@ -1,1 +1,3 @@
-from .export import main; main()
+from catalog.export import main
+
+main()
