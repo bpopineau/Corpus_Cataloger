@@ -58,11 +58,17 @@ def detect_duplicates(
         except Exception:
             pass
 
-    workers = max_workers or cfg.scanner.max_workers
+    workers = max_workers or cfg.dedupe.max_workers or cfg.scanner.max_workers
     small_file_threshold = cfg.dedupe.small_file_threshold
+    quick_hash_bytes = cfg.dedupe.quick_hash_bytes
+    sha_chunk_bytes = cfg.dedupe.sha_chunk_bytes
     
     emit_progress("start", 0, 0, "Initializing duplicate detection...")
-    emit_log(f"[DEDUPE] Starting duplicate detection with {workers} workers")
+    emit_log(
+        "[DEDUPE] Starting duplicate detection with "
+        f"{workers} workers | quick_bytes={quick_hash_bytes:,} | sha_chunk={sha_chunk_bytes:,}"
+    )
+    emit_log(f"[DEDUPE] Skipping quick hash for files smaller than {small_file_threshold:,} bytes")
     
     db_path = Path(cfg.db.path)
     if not db_path.exists():
@@ -84,20 +90,57 @@ def detect_duplicates(
     try:
         migrate(con)
         cur = con.cursor()
+
+        cur.execute("""
+            SELECT COUNT(*)
+            FROM files
+            WHERE state NOT IN ('error', 'missing')
+        """)
+        total_active = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT
+                COALESCE(SUM(cnt), 0) AS duplicate_population,
+                COUNT(*) AS duplicate_groups
+            FROM (
+                SELECT COUNT(*) AS cnt
+                FROM files
+                WHERE state NOT IN ('error', 'missing')
+                GROUP BY size_bytes
+                HAVING COUNT(*) > 1
+            ) AS grouped
+        """)
+        duplicate_population, duplicate_size_groups = cur.fetchone()
+
+        skipped_singletons = max(0, total_active - duplicate_population)
+        emit_log(
+            f"[INFO] Active files: {total_active:,} | duplicate size groups: {duplicate_size_groups:,}"
+        )
+        emit_log(
+            f"[INFO] Targeting {duplicate_population:,} files across shared sizes; skipping ~{skipped_singletons:,} singleton files"
+        )
         
         # Stage 1: Quick Hash
         if enable_quick_hash:
             emit_log("[STAGE 1] Quick hash generation")
             emit_progress("quick_hash", 0, 0, "Finding candidates for quick hashing...")
-            
-            # Find files that need quick hashing (only current database files)
+
+            # Find files that need quick hashing (only files sharing sizes)
             cur.execute("""
-                SELECT file_id, path_abs, size_bytes
-                FROM files
-                WHERE quick_hash IS NULL
-                  AND state NOT IN ('error', 'missing')
-                  AND size_bytes >= ?
-                ORDER BY size_bytes DESC
+                WITH duplicate_sizes AS (
+                    SELECT size_bytes
+                    FROM files
+                    WHERE state NOT IN ('error', 'missing')
+                    GROUP BY size_bytes
+                    HAVING COUNT(*) > 1
+                )
+                SELECT f.file_id, f.path_abs, f.size_bytes
+                FROM files f
+                INNER JOIN duplicate_sizes ds ON f.size_bytes = ds.size_bytes
+                WHERE f.quick_hash IS NULL
+                  AND f.state NOT IN ('error', 'missing')
+                  AND f.size_bytes >= ?
+                ORDER BY f.size_bytes DESC
             """, (small_file_threshold,))
             
             candidates = cur.fetchall()
@@ -119,7 +162,7 @@ def detect_duplicates(
                     }
                 
                 try:
-                    qh = quick_hash(path, cfg.scanner.io_chunk_bytes)
+                    qh = quick_hash(path, quick_hash_bytes)
                     return {
                         "file_id": file_id,
                         "status": "success",
@@ -199,26 +242,33 @@ def detect_duplicates(
         if enable_sha256:
             emit_log("[STAGE 2] SHA256 verification")
             emit_progress("sha256", 0, 0, "Finding potential duplicates...")
-            
+
             # Find files that have matching quick_hash OR are small files needing SHA256
             cur.execute("""
-                SELECT file_id, path_abs, size_bytes
-                FROM files
-                WHERE sha256 IS NULL
-                  AND state NOT IN ('error', 'missing')
+                WITH duplicate_sizes AS (
+                    SELECT size_bytes
+                    FROM files
+                    WHERE state NOT IN ('error', 'missing')
+                    GROUP BY size_bytes
+                    HAVING COUNT(*) > 1
+                ),
+                duplicate_quick_hashes AS (
+                    SELECT quick_hash
+                    FROM files
+                    WHERE quick_hash IS NOT NULL
+                    GROUP BY quick_hash
+                    HAVING COUNT(*) > 1
+                )
+                SELECT f.file_id, f.path_abs, f.size_bytes
+                FROM files f
+                INNER JOIN duplicate_sizes ds ON f.size_bytes = ds.size_bytes
+                WHERE f.sha256 IS NULL
+                  AND f.state NOT IN ('error', 'missing')
                   AND (
-                    -- Files with duplicate quick_hash
-                    quick_hash IN (
-                        SELECT quick_hash 
-                        FROM files 
-                        WHERE quick_hash IS NOT NULL 
-                        GROUP BY quick_hash 
-                        HAVING COUNT(*) > 1
-                    )
-                    -- OR small files that skipped quick hash
-                    OR (size_bytes < ? AND quick_hash IS NULL)
+                    f.quick_hash IN (SELECT quick_hash FROM duplicate_quick_hashes)
+                    OR (f.size_bytes < ? AND f.quick_hash IS NULL)
                   )
-                ORDER BY size_bytes DESC
+                ORDER BY f.size_bytes DESC
             """, (small_file_threshold,))
             
             sha_candidates = cur.fetchall()
@@ -239,7 +289,7 @@ def detect_duplicates(
                     }
                 
                 try:
-                    sha = sha256_file(path, cfg.scanner.io_chunk_bytes)
+                    sha = sha256_file(path, sha_chunk_bytes)
                     return {
                         "file_id": file_id,
                         "status": "success",
