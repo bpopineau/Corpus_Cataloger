@@ -9,7 +9,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .config import load_config, CatalogConfig
 from .db import connect, migrate
-from .util import quick_hash, sha256_file
 
 def utc(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
@@ -138,7 +137,6 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
             size = st.st_size
             mtime = utc(st.st_mtime)
             ctime = utc(st.st_ctime)
-            qh = quick_hash(path, cfg.scanner.io_chunk_bytes)
             ext = path.suffix.lower()
             return dict(
                 path_abs=str(path),
@@ -151,7 +149,7 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
                 owner=None,
                 flags=None,
                 mime_hint=None,
-                quick_hash=qh,
+                quick_hash=None,
                 sha256=None,
                 is_pdf_born_digital=None,
                 state="quick_hashed",
@@ -166,8 +164,8 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
     batch_size = 1000
     inserted_total = 0
     if total:
-        emit_progress("processing", 0, total, f"Hashing metadata for {total} files")
-        emit_log(f"[INFO] Processing {total} files with up to {cfg.scanner.max_workers} workers")
+        emit_progress("processing", 0, total, f"Collecting metadata for {total} files")
+        emit_log(f"[INFO] Collecting metadata for {total} files with up to {cfg.scanner.max_workers} workers")
     else:
         emit_progress("processing", 0, 0, "No files to process")
         emit_log("[INFO] Nothing to process; skipping hashing stage")
@@ -249,50 +247,8 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
 
     total_records = inserted_total
 
-    # Compute sha256 for groups that look like duplicates (same size + quick_hash)
-    cur.execute(
-        "SELECT size_bytes, quick_hash, COUNT(*) AS n FROM files "
-        "WHERE scan_run_id = ? GROUP BY size_bytes, quick_hash HAVING n > 1",
-        (scan_run_id,),
-    )
-    groups = cur.fetchall()
-    emit_log(f"[INFO] duplicate candidate groups this run: {len(groups)}")
-
-    duplicate_jobs: List[Tuple[int, str]] = []
-    for size, qh, n in groups:
-        cur.execute(
-            "SELECT file_id, path_abs FROM files WHERE scan_run_id = ? AND size_bytes = ? AND quick_hash = ? AND sha256 IS NULL",
-            (scan_run_id, size, qh),
-        )
-        rows = cur.fetchall()
-        duplicate_jobs.extend(rows)
-
-    total_sha = len(duplicate_jobs)
-    processed_sha = 0
-    if total_sha:
-        emit_progress("dedupe", 0, total_sha, f"Computing sha256 for {total_sha} duplicate candidates")
-        emit_log(f"[INFO] Computing sha256 for {total_sha} candidate duplicates")
-        for file_id, path_abs in duplicate_jobs:
-            try:
-                digest = sha256_file(Path(path_abs))
-                cur.execute("UPDATE files SET sha256=?, state='done' WHERE file_id=?", (digest, file_id))
-            except Exception as e:
-                cur.execute(
-                    "UPDATE files SET state='error', error_code='sha256', error_msg=? WHERE file_id=?",
-                    (str(e), file_id),
-                )
-            processed_sha += 1
-            if processed_sha % 20 == 0 or processed_sha == total_sha:
-                emit_progress(
-                    "dedupe",
-                    processed_sha,
-                    total_sha,
-                    f"SHA complete for {processed_sha}/{total_sha} duplicates",
-                )
-        con.commit()
-    else:
-        emit_progress("dedupe", 0, 0, "No duplicate groups detected")
-        emit_log("[INFO] No duplicate candidates detected this run")
+    emit_progress("dedupe", 0, 0, "Hashing disabled; skipping duplicate checks")
+    emit_log("[INFO] Hashing disabled, skipping duplicate detection stage")
 
     # Mark remaining as done
     emit_progress("finalize", 0, 0, "Finalizing states...")
