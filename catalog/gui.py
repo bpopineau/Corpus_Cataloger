@@ -304,7 +304,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.tableModel = FileTableModel(self)
         self.proxyModel = FileFilterProxyModel(self)
         self.proxyModel.setSourceModel(self.tableModel)
-        self.proxyModel.setRowAccessor(self.tableModel.raw_row)
+        self.proxyModel.setRowAccessor(lambda idx: row_as_dict(self.tableModel.raw_row(idx)))
         self.proxyModel.setFilterCaseSensitivity(CASE_INSENSITIVE)
         self.proxyModel.setSortCaseSensitivity(CASE_INSENSITIVE)
         self.proxyModel.setSortRole(USER_ROLE)
@@ -507,7 +507,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
             return
         if not self._tree_dirty:
             return
-        filtered_rows = [row for row in self._rows if self.proxyModel.matches(row)]
+        filtered_rows = [row for row in (row_as_dict(r) for r in self._rows) if self.proxyModel.matches(row)]
         self._rebuild_tree(filtered_rows)
         self._tree_dirty = False
 
