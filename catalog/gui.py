@@ -1,8 +1,9 @@
 from __future__ import annotations
-import sys, sqlite3
+import os, sqlite3, subprocess, sys
 from pathlib import Path
-from typing import Dict, Optional
-from PySide6 import QtWidgets, QtCore
+from typing import Any, Callable, Dict, List, Optional
+from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6.QtCore import Qt, QModelIndex
 
 from .config import CatalogConfig, ScannerConfig, load_config
 from .scan import scan_root
@@ -55,6 +56,420 @@ class ScanWorker(QtCore.QObject):
             % (cfg.scanner.max_workers, cfg.scanner.io_chunk_bytes)
         )
         return cfg
+
+
+FILE_PATH_ROLE = Qt.UserRole + 1
+IS_DIRECTORY_ROLE = Qt.UserRole + 2
+ROW_DATA_ROLE = Qt.UserRole + 3
+
+
+def format_bytes(size: Optional[int]) -> str:
+    if size is None:
+        return ""
+    if size < 1024:
+        return f"{size} B"
+    units = ["KB", "MB", "GB", "TB", "PB"]
+    value = float(size)
+    for unit in units:
+        value /= 1024.0
+        if value < 1024.0:
+            return f"{value:.1f} {unit}"
+    return f"{value:.1f} EB"
+
+
+class FileTableModel(QtCore.QAbstractTableModel):
+    COLUMNS: List[tuple[str, str]] = [
+        ("name", "Name"),
+        ("ext", "Ext"),
+        ("dir", "Directory"),
+        ("size_bytes", "Size"),
+        ("mtime_utc", "Modified"),
+        ("ctime_utc", "Created"),
+        ("state", "State"),
+        ("error_msg", "Error"),
+    ]
+
+    def __init__(self, parent: Optional[QtCore.QObject] = None) -> None:
+        super().__init__(parent)
+        self._rows: List[Dict[str, Any]] = []
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return len(self._rows)
+
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self.COLUMNS)
+
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
+        if not index.isValid():
+            return None
+        row = self._rows[index.row()]
+        key = self.COLUMNS[index.column()][0]
+        value = row.get(key)
+        if role == Qt.DisplayRole:
+            if key == "size_bytes":
+                return format_bytes(value)
+            if value is None:
+                return ""
+            return value
+        if role == Qt.UserRole:
+            if key == "size_bytes":
+                return value or 0
+            return value or ""
+        if role == Qt.ToolTipRole:
+            if key in {"name", "dir"}:
+                return row.get("path_abs")
+            if key == "error_msg" and value:
+                return value
+        if role == ROW_DATA_ROLE:
+            return row
+        return None
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.COLUMNS[section][1]
+        return super().headerData(section, orientation, role)
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        if not index.isValid():
+            return Qt.NoItemFlags
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+    def set_rows(self, rows: List[Dict[str, Any]]) -> None:
+        self.beginResetModel()
+        self._rows = list(rows)
+        self.endResetModel()
+
+    def row_data(self, row: int) -> Dict[str, Any]:
+        if 0 <= row < len(self._rows):
+            return self._rows[row]
+        return {}
+
+
+class FileFilterProxyModel(QtCore.QSortFilterProxyModel):
+    def __init__(self, parent: Optional[QtCore.QObject] = None) -> None:
+        super().__init__(parent)
+        self._filter_text: str = ""
+        self._state_filter: str = "All"
+        self._row_accessor: Optional[Callable[[int], Dict[str, Any]]] = None
+
+    def setRowAccessor(self, accessor: Callable[[int], Dict[str, Any]]) -> None:
+        self._row_accessor = accessor
+
+    def setFilterText(self, text: str) -> None:
+        self._filter_text = (text or "").strip().lower()
+        self.invalidateFilter()
+
+    def setStateFilter(self, state: str) -> None:
+        self._state_filter = state or "All"
+        self.invalidateFilter()
+
+    def matches(self, row: Dict[str, Any]) -> bool:
+        return self._accept_row(row)
+
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
+        row: Dict[str, Any]
+        if self._row_accessor:
+            row = self._row_accessor(source_row)
+        else:
+            model = self.sourceModel()
+            if hasattr(model, "row_data"):
+                row = model.row_data(source_row)
+            else:
+                row = {}
+        return self._accept_row(row)
+
+    def _accept_row(self, row: Dict[str, Any]) -> bool:
+        if not row:
+            return False
+        if self._state_filter != "All":
+            if (row.get("state") or "") != self._state_filter:
+                return False
+        if self._filter_text:
+            haystack = " ".join(
+                part for part in [
+                    row.get("path_abs"),
+                    row.get("name"),
+                    row.get("ext"),
+                    row.get("state"),
+                    row.get("error_msg"),
+                ]
+                if part
+            ).lower()
+            if self._filter_text not in haystack:
+                return False
+        return True
+
+
+class FileExplorerWidget(QtWidgets.QWidget):
+    def __init__(self, db_path_provider: Callable[[], Path], parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
+        self._db_path_provider = db_path_provider
+        self._cached_db_path: Optional[Path] = None
+        self._rows: List[Dict[str, Any]] = []
+        self._needs_reload = True
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        toolbar = QtWidgets.QHBoxLayout()
+        self.filterEdit = QtWidgets.QLineEdit()
+        self.filterEdit.setPlaceholderText("Filter by name, path, extension, or state...")
+        self.stateCombo = QtWidgets.QComboBox()
+        self.stateCombo.addItem("All")
+        self.viewToggle = QtWidgets.QButtonGroup(self)
+        self.tableBtn = QtWidgets.QRadioButton("Table view")
+        self.treeBtn = QtWidgets.QRadioButton("Tree view")
+        self.tableBtn.setChecked(True)
+        self.viewToggle.addButton(self.tableBtn, 0)
+        self.viewToggle.addButton(self.treeBtn, 1)
+        self.refreshBtn = QtWidgets.QPushButton("Reload")
+
+        toolbar.addWidget(QtWidgets.QLabel("Filter:"))
+        toolbar.addWidget(self.filterEdit, 1)
+        toolbar.addWidget(QtWidgets.QLabel("State:"))
+        toolbar.addWidget(self.stateCombo)
+        toolbar.addSpacing(12)
+        toolbar.addWidget(self.tableBtn)
+        toolbar.addWidget(self.treeBtn)
+        toolbar.addSpacing(12)
+        toolbar.addWidget(self.refreshBtn)
+        layout.addLayout(toolbar)
+
+        self.stack = QtWidgets.QStackedWidget()
+        layout.addWidget(self.stack, 1)
+
+        # Table view setup
+        self.tableModel = FileTableModel(self)
+        self.proxyModel = FileFilterProxyModel(self)
+        self.proxyModel.setSourceModel(self.tableModel)
+        self.proxyModel.setRowAccessor(self.tableModel.row_data)
+        self.proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.proxyModel.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.proxyModel.setSortRole(QtCore.Qt.UserRole)
+
+        self.tableView = QtWidgets.QTableView()
+        self.tableView.setModel(self.proxyModel)
+        self.tableView.setSortingEnabled(True)
+        header = self.tableView.horizontalHeader()
+        header.setStretchLastSection(True)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        self.tableView.doubleClicked.connect(self._handle_table_double_click)
+        self.stack.addWidget(self.tableView)
+
+        # Tree view setup
+        self.treeModel = QtGui.QStandardItemModel()
+        self.treeModel.setHorizontalHeaderLabels(["Name", "Size", "Ext", "State"])
+        self.treeView = QtWidgets.QTreeView()
+        self.treeView.setModel(self.treeModel)
+        self.treeView.setSortingEnabled(True)
+        self.treeView.doubleClicked.connect(self._handle_tree_double_click)
+        self.treeView.header().setStretchLastSection(True)
+        self.stack.addWidget(self.treeView)
+
+        self.statusLabel = QtWidgets.QLabel("Ready")
+        layout.addWidget(self.statusLabel)
+
+        self.filterEdit.textChanged.connect(self._on_filter_text)
+        self.stateCombo.currentTextChanged.connect(self._on_state_change)
+        self.viewToggle.idToggled.connect(self._on_view_toggled)
+        self.refreshBtn.clicked.connect(self.refresh_data)
+
+    def mark_stale(self) -> None:
+        self._needs_reload = True
+
+    def ensure_loaded(self) -> None:
+        db_path = self._db_path_provider()
+        if self._needs_reload or self._cached_db_path != db_path:
+            self.refresh_data()
+
+    def refresh_data(self) -> None:
+        db_path = self._db_path_provider()
+        self._cached_db_path = db_path
+        if not db_path.exists():
+            self._rows = []
+            self._update_models([])
+            self.statusLabel.setText(f"Database not found: {db_path}")
+            self._needs_reload = True
+            return
+        try:
+            con = sqlite3.connect(str(db_path))
+            cur = con.cursor()
+            cur.execute(
+                """SELECT file_id, scan_run_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_code, error_msg FROM files"""
+            )
+            rows = [
+                dict(
+                    file_id=row[0],
+                    scan_run_id=row[1],
+                    path_abs=row[2],
+                    dir=row[3],
+                    name=row[4],
+                    ext=row[5],
+                    size_bytes=row[6],
+                    mtime_utc=row[7],
+                    ctime_utc=row[8],
+                    state=row[9],
+                    error_code=row[10],
+                    error_msg=row[11],
+                )
+                for row in cur.fetchall()
+            ]
+            con.close()
+        except Exception as e:
+            self._rows = []
+            self._update_models([])
+            self.statusLabel.setText(f"Error loading files: {e}")
+            self._needs_reload = True
+            return
+
+        self._rows = rows
+        self._needs_reload = False
+        self._update_state_options(rows)
+        self._update_models(rows)
+        self.statusLabel.setText(f"Loaded {len(rows)} files from {db_path}")
+
+    def _update_state_options(self, rows: List[Dict[str, Any]]) -> None:
+        states = sorted({row.get("state") for row in rows if row.get("state")})
+        current = self.stateCombo.currentText()
+        self.stateCombo.blockSignals(True)
+        self.stateCombo.clear()
+        self.stateCombo.addItem("All")
+        for state in states:
+            self.stateCombo.addItem(state)
+        if current and self.stateCombo.findText(current) >= 0:
+            self.stateCombo.setCurrentText(current)
+        self.stateCombo.blockSignals(False)
+
+    def _update_models(self, rows: List[Dict[str, Any]]) -> None:
+        self.tableModel.set_rows(rows)
+        self.proxyModel.invalidateFilter()
+        filtered_rows = [row for row in rows if self.proxyModel.matches(row)]
+        self._rebuild_tree(filtered_rows)
+
+    def _rebuild_tree(self, rows: List[Dict[str, Any]]) -> None:
+        self.treeModel.removeRows(0, self.treeModel.rowCount())
+        root = self.treeModel.invisibleRootItem()
+        nodes: Dict[str, QtGui.QStandardItem] = {}
+
+        for row in rows:
+            path_str = row.get("path_abs")
+            if not path_str:
+                continue
+            path = Path(path_str)
+            parts = path.parts
+            parent_item = root
+            if parts:
+                current_path = parts[0]
+                if parts[:-1]:
+                    dir_key = current_path
+                    node = nodes.get(dir_key)
+                    if node is None:
+                        items = self._create_dir_items(parts[0], current_path)
+                        parent_item.appendRow(items)
+                        node = items[0]
+                        nodes[dir_key] = node
+                    parent_item = node
+                    for part in parts[1:-1]:
+                        current_path = os.path.join(current_path, part)
+                        dir_key = current_path
+                        node = nodes.get(dir_key)
+                        if node is None:
+                            items = self._create_dir_items(part, current_path)
+                            parent_item.appendRow(items)
+                            node = items[0]
+                            nodes[dir_key] = node
+                        parent_item = node
+
+            file_items = self._create_file_items(row)
+            parent_item.appendRow(file_items)
+
+        self.treeView.expandToDepth(0)
+
+    def _create_dir_items(self, name: str, full_path: str) -> List[QtGui.QStandardItem]:
+        name_item = QtGui.QStandardItem(name)
+        name_item.setEditable(False)
+        name_item.setData(full_path, FILE_PATH_ROLE)
+        name_item.setData(True, IS_DIRECTORY_ROLE)
+        size_item = QtGui.QStandardItem("")
+        size_item.setEditable(False)
+        ext_item = QtGui.QStandardItem("")
+        ext_item.setEditable(False)
+        state_item = QtGui.QStandardItem("")
+        state_item.setEditable(False)
+        return [name_item, size_item, ext_item, state_item]
+
+    def _create_file_items(self, row: Dict[str, Any]) -> List[QtGui.QStandardItem]:
+        name_item = QtGui.QStandardItem(row.get("name") or "")
+        name_item.setEditable(False)
+        name_item.setData(row.get("path_abs"), FILE_PATH_ROLE)
+        name_item.setData(False, IS_DIRECTORY_ROLE)
+        name_item.setData(row, ROW_DATA_ROLE)
+
+        size_item = QtGui.QStandardItem(format_bytes(row.get("size_bytes")))
+        size_item.setEditable(False)
+        size_item.setData(row.get("size_bytes") or 0, QtCore.Qt.UserRole)
+
+        ext_item = QtGui.QStandardItem(row.get("ext") or "")
+        ext_item.setEditable(False)
+
+        state_item = QtGui.QStandardItem(row.get("state") or "")
+        state_item.setEditable(False)
+
+        return [name_item, size_item, ext_item, state_item]
+
+    def _on_filter_text(self, text: str) -> None:
+        self.proxyModel.setFilterText(text)
+        self._update_models(self._rows)
+
+    def _on_state_change(self, state: str) -> None:
+        self.proxyModel.setStateFilter(state)
+        self._update_models(self._rows)
+
+    def _on_view_toggled(self, button_id: int, checked: bool) -> None:
+        if not checked:
+            return
+        self.stack.setCurrentIndex(button_id)
+
+    def _handle_table_double_click(self, index: QtCore.QModelIndex) -> None:
+        if not index.isValid():
+            return
+        source_index = self.proxyModel.mapToSource(index)
+        row = self.tableModel.row_data(source_index.row())
+        self._open_path(row.get("path_abs"))
+
+    def _handle_tree_double_click(self, index: QtCore.QModelIndex) -> None:
+        if not index.isValid():
+            return
+        item = self.treeModel.itemFromIndex(index)
+        if not item:
+            return
+        if item.data(IS_DIRECTORY_ROLE):
+            if self.treeView.isExpanded(index):
+                self.treeView.collapse(index)
+            else:
+                self.treeView.expand(index)
+            return
+        path = item.data(FILE_PATH_ROLE)
+        self._open_path(path)
+
+    def _open_path(self, path: Optional[str]) -> None:
+        if not path:
+            return
+        p = Path(path)
+        if not p.exists():
+            QtWidgets.QMessageBox.warning(self, "File missing", f"File not found on disk:\n{path}")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(str(p))  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(p)])
+            else:
+                subprocess.Popen(["xdg-open", str(p)])
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Open failed", f"Could not open file:\n{e}")
 
 
 class MainWindow(QtWidgets.QMainWindow):
