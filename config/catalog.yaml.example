@@ -1,0 +1,33 @@
+roots:
+  - "."
+
+include_ext:
+  - .pdf
+  - .docx
+  - .xlsx
+  - .msg
+  - .dwg
+  - .png
+  - .jpg
+  - .tiff
+
+exclude_paths:
+  - "\\$RECYCLE.BIN\\"
+  - "\\node_modules\\"
+  - "\\.git\\"
+  - "\\Temp\\"
+  - "\\~$"
+
+scanner:
+  max_workers: 8
+  io_chunk_bytes: 65536
+  probe_pdf_pages: 3
+
+db:
+  path: "data/projects.db"
+  journal_mode: "WAL"
+  synchronous: "NORMAL"
+
+export:
+  parquet_dir: "data/parquet"
+  schedule: "manual"

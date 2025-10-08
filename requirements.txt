@@ -1,0 +1,12 @@
+pyside6
+pydantic>=2
+pyyaml
+xxhash
+python-magic-bin; platform_system == "Windows"
+python-magic; platform_system != "Windows"
+pypdf
+python-docx
+pyarrow
+duckdb
+rich
+tqdm
