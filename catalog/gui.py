@@ -251,6 +251,9 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.tableView = QtWidgets.QTableView()
         self.tableView.setModel(self.proxyModel)
         self.tableView.setSortingEnabled(True)
+        self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.tableView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tableView.customContextMenuRequested.connect(self._show_table_context_menu)
         header = self.tableView.horizontalHeader()
         header.setStretchLastSection(True)
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -266,6 +269,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.treeView.setSortingEnabled(True)
         self.treeView.doubleClicked.connect(self._handle_tree_double_click)
         self.treeView.header().setStretchLastSection(True)
+        self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeView.customContextMenuRequested.connect(self._show_tree_context_menu)
         self.stack.addWidget(self.treeView)
 
         self.statusLabel = QtWidgets.QLabel("Ready")
@@ -454,6 +459,57 @@ class FileExplorerWidget(QtWidgets.QWidget):
         path = item.data(FILE_PATH_ROLE)
         self._open_path(path)
 
+    def _show_table_context_menu(self, pos: QtCore.QPoint) -> None:
+        index = self.tableView.indexAt(pos)
+        if not index.isValid():
+            return
+        source_index = self.proxyModel.mapToSource(index)
+        row = self.tableModel.row_data(source_index.row())
+        path = row.get("path_abs")
+        menu = QtWidgets.QMenu(self)
+        open_action = menu.addAction("Open file")
+        reveal_action = menu.addAction("Reveal in folder")
+        copy_action = menu.addAction("Copy path")
+        chosen = menu.exec(self.tableView.viewport().mapToGlobal(pos))
+        if chosen == open_action:
+            self._open_path(path)
+        elif chosen == reveal_action:
+            self._reveal_in_explorer(path)
+        elif chosen == copy_action:
+            self._copy_path(path)
+
+    def _show_tree_context_menu(self, pos: QtCore.QPoint) -> None:
+        index = self.treeView.indexAt(pos)
+        if not index.isValid():
+            return
+        item = self.treeModel.itemFromIndex(index)
+        if not item:
+            return
+        path = item.data(FILE_PATH_ROLE)
+        if not path:
+            return
+        is_dir = bool(item.data(IS_DIRECTORY_ROLE))
+        menu = QtWidgets.QMenu(self)
+        if is_dir:
+            open_action = menu.addAction("Open folder")
+            copy_action = menu.addAction("Copy path")
+            chosen = menu.exec(self.treeView.viewport().mapToGlobal(pos))
+            if chosen == open_action:
+                self._reveal_in_explorer(path)
+            elif chosen == copy_action:
+                self._copy_path(path)
+        else:
+            open_action = menu.addAction("Open file")
+            reveal_action = menu.addAction("Reveal in folder")
+            copy_action = menu.addAction("Copy path")
+            chosen = menu.exec(self.treeView.viewport().mapToGlobal(pos))
+            if chosen == open_action:
+                self._open_path(path)
+            elif chosen == reveal_action:
+                self._reveal_in_explorer(path)
+            elif chosen == copy_action:
+                self._copy_path(path)
+
     def _open_path(self, path: Optional[str]) -> None:
         if not path:
             return
@@ -470,6 +526,35 @@ class FileExplorerWidget(QtWidgets.QWidget):
                 subprocess.Popen(["xdg-open", str(p)])
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Open failed", f"Could not open file:\n{e}")
+
+    def _reveal_in_explorer(self, path: Optional[str]) -> None:
+        if not path:
+            return
+        p = Path(path)
+        if not p.exists():
+            QtWidgets.QMessageBox.warning(self, "Path missing", f"Path not found on disk:\n{path}")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                if p.is_file():
+                    subprocess.Popen(["explorer", "/select,", str(p)])
+                else:
+                    subprocess.Popen(["explorer", str(p)])
+            elif sys.platform == "darwin":
+                if p.is_file():
+                    subprocess.Popen(["open", "-R", str(p)])
+                else:
+                    subprocess.Popen(["open", str(p)])
+            else:
+                target = p if p.is_dir() else p.parent
+                subprocess.Popen(["xdg-open", str(target)])
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Open failed", f"Could not open location:\n{e}")
+
+    def _copy_path(self, path: Optional[str]) -> None:
+        if not path:
+            return
+        QtWidgets.QApplication.clipboard().setText(path)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -529,24 +614,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scanProgress.setValue(0)
         layout.addWidget(self.scanProgress)
 
-        layout.addWidget(QtWidgets.QLabel("Database progress"))
         self.dbProgress = QtWidgets.QProgressBar()
         self.dbProgress.setRange(0, 0)
-        layout.addWidget(self.dbProgress)
 
-        layout.addWidget(QtWidgets.QLabel("Database stats"))
         self.dbStats = QtWidgets.QPlainTextEdit()
         self.dbStats.setReadOnly(True)
-        layout.addWidget(self.dbStats, 1)
 
-        layout.addWidget(QtWidgets.QLabel("Scan log"))
         self.logView = QtWidgets.QPlainTextEdit()
         self.logView.setReadOnly(True)
-        layout.addWidget(self.logView, 1)
 
-        self.refreshBtn.clicked.connect(self.refresh_stats)
+        leftPane = QtWidgets.QWidget()
+        leftPane.setMinimumWidth(320)
+        leftLayout = QtWidgets.QVBoxLayout(leftPane)
+        leftLayout.addWidget(QtWidgets.QLabel("Database progress"))
+        leftLayout.addWidget(self.dbProgress)
+        leftLayout.addWidget(QtWidgets.QLabel("Database stats"))
+        leftLayout.addWidget(self.dbStats, 1)
+        leftLayout.addWidget(QtWidgets.QLabel("Scan log"))
+        leftLayout.addWidget(self.logView, 2)
+
+        self.fileExplorer = FileExplorerWidget(self._current_db_path, self)
+        splitter = QtWidgets.QSplitter(Qt.Horizontal)
+        splitter.addWidget(leftPane)
+        splitter.addWidget(self.fileExplorer)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 3)
+        layout.addWidget(splitter, 1)
+
+        self.refreshBtn.clicked.connect(self._refresh_all)
         self.browseBtn.clicked.connect(self._select_folder)
         self.scanBtn.clicked.connect(self._start_scan)
+        self.dbEdit.editingFinished.connect(self._on_db_path_changed)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.refresh_stats)
@@ -568,26 +666,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self._scan_thread: Optional[QtCore.QThread] = None
         self._scan_worker: Optional[ScanWorker] = None
 
+        self.fileExplorer.mark_stale()
         self.refresh_stats()
 
     def refresh_stats(self) -> None:
-        db_path = Path(self.dbEdit.text())
+        db_path = self._current_db_path()
+        explorer = getattr(self, "fileExplorer", None)
+
         if not db_path.exists():
             self.dbStats.setPlainText("DB not found. Run a scan from the CLI or start a new scan.")
             self.dbProgress.setRange(0, 0)
+            if explorer:
+                explorer.mark_stale()
+                explorer.ensure_loaded()
             return
+
         try:
-            con = sqlite3.connect(str(db_path))
-            cur = con.cursor()
-            cur.execute("SELECT COUNT(*) FROM files")
-            total = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM files WHERE state='done'")
-            done = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM files WHERE state IN ('pending','quick_hashed','sha_pending')")
-            pending = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM files WHERE state='error'")
-            err = cur.fetchone()[0]
-            con.close()
+            with sqlite3.connect(str(db_path)) as con:
+                cur = con.cursor()
+                cur.execute("SELECT COUNT(*) FROM files")
+                total = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM files WHERE state='done'")
+                done = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM files WHERE state IN ('pending','quick_hashed','sha_pending')")
+                pending = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM files WHERE state='error'")
+                err = cur.fetchone()[0]
+
             self.dbStats.setPlainText(f"Total: {total}\nDone: {done}\nPending: {pending}\nErrors: {err}")
             if total > 0:
                 self.dbProgress.setRange(0, total)
@@ -597,6 +702,26 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception as e:
             self.dbStats.setPlainText(f"Error: {e}")
             self.dbProgress.setRange(0, 0)
+            if explorer:
+                explorer.mark_stale()
+                explorer.ensure_loaded()
+        else:
+            if explorer:
+                explorer.ensure_loaded()
+
+    def _refresh_all(self) -> None:
+        self.fileExplorer.mark_stale()
+        self.refresh_stats()
+
+    def _on_db_path_changed(self) -> None:
+        self.fileExplorer.mark_stale()
+        self.refresh_stats()
+
+    def _current_db_path(self) -> Path:
+        text = self.dbEdit.text().strip()
+        if not text:
+            return Path("data/projects.db")
+        return Path(text)
 
     def _select_folder(self) -> None:
         directory = QtWidgets.QFileDialog.getExistingDirectory(self, "Select folder to scan")
@@ -617,9 +742,11 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Invalid Folder", "The selected folder does not exist.")
             return
 
-        db_path = Path(self.dbEdit.text().strip())
+        db_path = self._current_db_path()
         if not db_path.parent.exists():
             db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self.fileExplorer.mark_stale()
 
         self.scanBtn.setEnabled(False)
         self.rootEdit.setEnabled(False)
@@ -677,7 +804,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.browseBtn.setEnabled(True)
         self.workerSpin.setEnabled(True)
         self.chunkSpin.setEnabled(True)
-        self.refresh_stats()
+        self._refresh_all()
 
     @QtCore.Slot(str, int, int, str)
     def _handle_progress(self, stage: str, current: int, total: int, message: str) -> None:
@@ -698,6 +825,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scanProgress.setRange(0, 1)
         self.scanProgress.setValue(1)
         self.logView.appendPlainText("[DONE] Scan complete")
+        self._refresh_all()
         QtWidgets.QMessageBox.information(self, "Scan complete", "Scanning finished successfully.")
 
     @QtCore.Slot(str)
@@ -706,6 +834,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scanProgress.setRange(0, 1)
         self.scanProgress.setValue(0)
         self.logView.appendPlainText(f"[ERROR] {error}")
+        self._refresh_all()
         QtWidgets.QMessageBox.critical(self, "Scan failed", error)
 
 
