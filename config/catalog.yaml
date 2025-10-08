@@ -19,9 +19,9 @@ exclude_paths:
   - "\\~$"
 
 scanner:
-  max_workers: 8
-  io_chunk_bytes: 65536
-  probe_pdf_pages: 3
+  max_workers: 20
+  io_chunk_bytes: 256000
+  probe_pdf_pages: 1
 
 db:
   path: "data/projects.db"
