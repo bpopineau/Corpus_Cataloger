@@ -831,9 +831,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if explorer:
                 explorer.ensure_loaded()
 
-        def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-            self.fileExplorer.shutdown()
-            super().closeEvent(event)
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self.fileExplorer.shutdown()
+        super().closeEvent(event)
 
     def _refresh_all(self) -> None:
         self.fileExplorer.mark_stale()
