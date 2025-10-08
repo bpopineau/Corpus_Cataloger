@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os, sqlite3, subprocess, sys
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 from functools import partial
 from concurrent.futures import Future, ThreadPoolExecutor
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -89,6 +89,42 @@ def format_bytes(size: Optional[int]) -> str:
     return f"{value:.1f} EB"
 
 
+def row_get(row: Any, key: str, default: Any = None) -> Any:
+    if isinstance(row, dict):
+        return row.get(key, default)
+    if row is None:
+        return default
+    getter = getattr(row, "get", None)
+    if callable(getter):
+        try:
+            return getter(key, default)
+        except TypeError:
+            pass
+    try:
+        return row[key]  # type: ignore[index]
+    except Exception:
+        keys_method = getattr(row, "keys", None)
+        if callable(keys_method):
+            keys = keys_method()
+            if key in keys:
+                try:
+                    return row[key]  # type: ignore[index]
+                except Exception:
+                    pass
+    return default
+
+
+def row_as_dict(row: Any) -> Dict[str, Any]:
+    if isinstance(row, dict):
+        return dict(row)
+    result: Dict[str, Any] = {}
+    keys_method = getattr(row, "keys", None)
+    if callable(keys_method):
+        for key in keys_method():
+            result[key] = row_get(row, key)
+    return result
+
+
 class FileTableModel(QtCore.QAbstractTableModel):
     COLUMNS: List[tuple[str, str]] = [
         ("name", "Name"),
@@ -103,7 +139,7 @@ class FileTableModel(QtCore.QAbstractTableModel):
 
     def __init__(self, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
-        self._rows: List[Dict[str, Any]] = []
+        self._rows: List[Any] = []
 
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         if parent.isValid():
@@ -118,7 +154,7 @@ class FileTableModel(QtCore.QAbstractTableModel):
             return None
         row = self._rows[index.row()]
         key = self.COLUMNS[index.column()][0]
-        value = row.get(key)
+        value = row_get(row, key)
         if role == DISPLAY_ROLE:
             if key == "size_bytes":
                 return format_bytes(value)
@@ -131,11 +167,11 @@ class FileTableModel(QtCore.QAbstractTableModel):
             return value or ""
         if role == TOOLTIP_ROLE:
             if key in {"name", "dir"}:
-                return row.get("path_abs")
+                return row_get(row, "path_abs")
             if key == "error_msg" and value:
                 return value
         if role == ROW_DATA_ROLE:
-            return row
+            return row_as_dict(row)
         return None
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = DISPLAY_ROLE) -> Any:
@@ -148,12 +184,17 @@ class FileTableModel(QtCore.QAbstractTableModel):
             return NO_ITEM_FLAGS
         return ENABLED_ITEM_FLAG | SELECTABLE_ITEM_FLAG
 
-    def set_rows(self, rows: List[Dict[str, Any]]) -> None:
+    def set_rows(self, rows: Sequence[Any]) -> None:
         self.beginResetModel()
         self._rows = list(rows)
         self.endResetModel()
 
     def row_data(self, row: int) -> Dict[str, Any]:
+        if 0 <= row < len(self._rows):
+            return row_as_dict(self._rows[row])
+        return {}
+
+    def raw_row(self, row: int) -> Any:
         if 0 <= row < len(self._rows):
             return self._rows[row]
         return {}
@@ -196,16 +237,16 @@ class FileFilterProxyModel(QtCore.QSortFilterProxyModel):
         if not row:
             return False
         if self._state_filter != "All":
-            if (row.get("state") or "") != self._state_filter:
+            if (row_get(row, "state") or "") != self._state_filter:
                 return False
         if self._filter_text:
             haystack = " ".join(
                 part for part in [
-                    row.get("path_abs"),
-                    row.get("name"),
-                    row.get("ext"),
-                    row.get("state"),
-                    row.get("error_msg"),
+                    row_get(row, "path_abs"),
+                    row_get(row, "name"),
+                    row_get(row, "ext"),
+                    row_get(row, "state"),
+                    row_get(row, "error_msg"),
                 ]
                 if part
             ).lower()
@@ -219,7 +260,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self._db_path_provider = db_path_provider
         self._cached_db_path: Optional[Path] = None
-        self._rows: List[Dict[str, Any]] = []
+        self._rows: List[Any] = []
         self._needs_reload = True
         self._executor: Optional[ThreadPoolExecutor] = ThreadPoolExecutor(max_workers=1)
         self._current_future: Optional[Future] = None
@@ -263,7 +304,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.tableModel = FileTableModel(self)
         self.proxyModel = FileFilterProxyModel(self)
         self.proxyModel.setSourceModel(self.tableModel)
-        self.proxyModel.setRowAccessor(self.tableModel.row_data)
+        self.proxyModel.setRowAccessor(self.tableModel.raw_row)
         self.proxyModel.setFilterCaseSensitivity(CASE_INSENSITIVE)
         self.proxyModel.setSortCaseSensitivity(CASE_INSENSITIVE)
         self.proxyModel.setSortRole(USER_ROLE)
@@ -339,29 +380,14 @@ class FileExplorerWidget(QtWidgets.QWidget):
         future.add_done_callback(partial(self._on_future_done, Path(db_path)))
 
     @staticmethod
-    def _fetch_rows(db_path: Path) -> List[Dict[str, Any]]:
+    def _fetch_rows(db_path: Path) -> List[Any]:
         with sqlite3.connect(str(db_path)) as con:
+            con.row_factory = sqlite3.Row
             cur = con.cursor()
             cur.execute(
-                """SELECT file_id, scan_run_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_code, error_msg FROM files"""
+                """SELECT file_id, path_abs, dir, name, ext, size_bytes, mtime_utc, ctime_utc, state, error_msg FROM files"""
             )
-            return [
-                dict(
-                    file_id=row[0],
-                    scan_run_id=row[1],
-                    path_abs=row[2],
-                    dir=row[3],
-                    name=row[4],
-                    ext=row[5],
-                    size_bytes=row[6],
-                    mtime_utc=row[7],
-                    ctime_utc=row[8],
-                    state=row[9],
-                    error_code=row[10],
-                    error_msg=row[11],
-                )
-                for row in cur.fetchall()
-            ]
+            return cur.fetchall()
 
     def _on_future_done(self, path: Path, future: Future) -> None:
         try:
@@ -371,14 +397,14 @@ class FileExplorerWidget(QtWidgets.QWidget):
         else:
             QtCore.QTimer.singleShot(0, lambda: self._handle_future_success(path, rows))
 
-    def _handle_future_success(self, path: Path, rows: List[Dict[str, Any]]) -> None:
+    def _handle_future_success(self, path: Path, rows: Sequence[Any]) -> None:
         self._current_future = None
-        self._rows = rows
+        self._rows = list(rows)
         self._cached_db_path = path
         self._requested_db_path = path
-        self._update_state_options(rows)
-        self._update_models(rows)
-        self.statusLabel.setText(f"Loaded {len(rows)} files from {path}")
+        self._update_state_options(self._rows)
+        self._update_models(self._rows)
+        self.statusLabel.setText(f"Loaded {len(self._rows)} files from {path}")
         self._finish_loading()
 
     def _handle_future_failure(self, path: Path, error: str) -> None:
@@ -409,8 +435,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self._loading = False
         self._active_db_path = None
 
-    def _update_state_options(self, rows: List[Dict[str, Any]]) -> None:
-        states = sorted({str(state) for state in (row.get("state") for row in rows) if state})
+    def _update_state_options(self, rows: Sequence[Any]) -> None:
+        states = sorted({str(state) for state in (row_get(row, "state") for row in rows) if state})
         current = self.stateCombo.currentText()
         self.stateCombo.blockSignals(True)
         self.stateCombo.clear()
@@ -421,16 +447,40 @@ class FileExplorerWidget(QtWidgets.QWidget):
             self.stateCombo.setCurrentText(current)
         self.stateCombo.blockSignals(False)
 
-    def _update_models(self, rows: List[Dict[str, Any]]) -> None:
+    def _update_models(self, rows: Sequence[Any]) -> None:
         self.tableModel.set_rows(rows)
         self.proxyModel.invalidateFilter()
         self._tree_dirty = True
         self._maybe_rebuild_tree()
 
-    def _rebuild_tree(self, rows: List[Dict[str, Any]]) -> None:
+    def _rebuild_tree(self, rows: Sequence[Any]) -> None:
         self.treeModel.removeRows(0, self.treeModel.rowCount())
         root = self.treeModel.invisibleRootItem()
         nodes: Dict[str, QtGui.QStandardItem] = {}
+        parts_cache: Dict[str, Sequence[str]] = {}
+
+        def ensure_directory(path_str: str) -> QtGui.QStandardItem:
+            if not path_str:
+                return root
+            existing = nodes.get(path_str)
+            if existing is not None:
+                return existing
+            parts = parts_cache.get(path_str)
+            if parts is None:
+                parts_cache[path_str] = parts = Path(path_str).parts
+            parent = root
+            current_path = ""
+            for part in parts:
+                current_path = part if not current_path else os.path.join(current_path, part)
+                node = nodes.get(current_path)
+                if node is None:
+                    items = self._create_dir_items(part, current_path)
+                    parent.appendRow(items)
+                    node = items[0]
+                    nodes[current_path] = node
+                parent = node
+            nodes[path_str] = parent
+            return parent
 
         truncated = False
         limit = self._tree_row_limit
@@ -439,40 +489,16 @@ class FileExplorerWidget(QtWidgets.QWidget):
             if limit and idx >= limit:
                 truncated = True
                 break
-            path_str = row.get("path_abs")
-            if not path_str:
-                continue
-            path = Path(path_str)
-            parts = path.parts
-            parent_item = root
-            if parts:
-                current_path = parts[0]
-                if parts[:-1]:
-                    dir_key = current_path
-                    node = nodes.get(dir_key)
-                    if node is None:
-                        items = self._create_dir_items(parts[0], current_path)
-                        parent_item.appendRow(items)
-                        node = items[0]
-                        nodes[dir_key] = node
-                    parent_item = node
-                    for part in parts[1:-1]:
-                        current_path = os.path.join(current_path, part)
-                        dir_key = current_path
-                        node = nodes.get(dir_key)
-                        if node is None:
-                            items = self._create_dir_items(part, current_path)
-                            parent_item.appendRow(items)
-                            node = items[0]
-                            nodes[dir_key] = node
-                        parent_item = node
-
+            dir_path = row_get(row, "dir", "")
+            parent_item = ensure_directory(dir_path if isinstance(dir_path, str) else "")
             file_items = self._create_file_items(row)
             parent_item.appendRow(file_items)
 
         self.treeView.expandToDepth(0)
         if truncated:
-            self.treeView.setToolTip(f"Tree view truncated to first {limit:,} entries (of {len(rows):,}). Apply filters to narrow results.")
+            self.treeView.setToolTip(
+                f"Tree view truncated to first {limit:,} entries (of {len(rows):,}). Apply filters to narrow results."
+            )
         else:
             self.treeView.setToolTip("")
 
@@ -498,21 +524,21 @@ class FileExplorerWidget(QtWidgets.QWidget):
         state_item.setEditable(False)
         return [name_item, size_item, ext_item, state_item]
 
-    def _create_file_items(self, row: Dict[str, Any]) -> List[QtGui.QStandardItem]:
-        name_item = QtGui.QStandardItem(row.get("name") or "")
+    def _create_file_items(self, row: Any) -> List[QtGui.QStandardItem]:
+        name_item = QtGui.QStandardItem(row_get(row, "name") or "")
         name_item.setEditable(False)
-        name_item.setData(row.get("path_abs"), FILE_PATH_ROLE)
+        name_item.setData(row_get(row, "path_abs"), FILE_PATH_ROLE)
         name_item.setData(False, IS_DIRECTORY_ROLE)
         name_item.setData(row, ROW_DATA_ROLE)
 
-        size_item = QtGui.QStandardItem(format_bytes(row.get("size_bytes")))
+        size_item = QtGui.QStandardItem(format_bytes(row_get(row, "size_bytes")))
         size_item.setEditable(False)
-        size_item.setData(row.get("size_bytes") or 0, USER_ROLE)
+        size_item.setData(row_get(row, "size_bytes") or 0, USER_ROLE)
 
-        ext_item = QtGui.QStandardItem(row.get("ext") or "")
+        ext_item = QtGui.QStandardItem(row_get(row, "ext") or "")
         ext_item.setEditable(False)
 
-        state_item = QtGui.QStandardItem(row.get("state") or "")
+        state_item = QtGui.QStandardItem(row_get(row, "state") or "")
         state_item.setEditable(False)
 
         return [name_item, size_item, ext_item, state_item]
@@ -537,8 +563,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
         if not index.isValid():
             return
         source_index = self.proxyModel.mapToSource(index)
-        row = self.tableModel.row_data(source_index.row())
-        self._open_path(row.get("path_abs"))
+        row = self.tableModel.raw_row(source_index.row())
+        self._open_path(row_get(row, "path_abs"))
 
     def _handle_tree_double_click(self, index: QtCore.QModelIndex) -> None:
         if not index.isValid():
@@ -560,8 +586,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
         if not index.isValid():
             return
         source_index = self.proxyModel.mapToSource(index)
-        row = self.tableModel.row_data(source_index.row())
-        path = row.get("path_abs")
+        row = self.tableModel.raw_row(source_index.row())
+        path = row_get(row, "path_abs")
         menu = QtWidgets.QMenu(self)
         open_action = menu.addAction("Open file")
         reveal_action = menu.addAction("Reveal in folder")
