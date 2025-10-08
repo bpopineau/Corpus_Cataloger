@@ -1,8 +1,8 @@
 # catalog/scan.py
 from __future__ import annotations
-import argparse, os, socket, getpass, importlib
+import argparse, os, socket, getpass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+from typing import Callable, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,16 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .config import load_config, CatalogConfig
 from .db import connect, migrate
 from .util import quick_hash, sha256_file
-
-PdfReaderFactory = Callable[[str], Any]
-
-pdf_reader: Optional[PdfReaderFactory]
-try:
-    _pypdf = importlib.import_module("pypdf")
-except Exception:
-    pdf_reader = None
-else:
-    pdf_reader = cast(Optional[PdfReaderFactory], getattr(_pypdf, "PdfReader", None))
 
 def utc(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
@@ -30,20 +20,6 @@ def should_skip_path(p: Path, excludes: List[str]) -> bool:
         if pat and pat in s:
             return True
     return False
-
-def born_digital_pdf(path: Path, pages: int) -> Optional[int]:
-    if pdf_reader is None:
-        return None
-    try:
-        r = pdf_reader(str(path))
-        n = min(len(r.pages), max(1, pages))
-        for i in range(n):
-            t = r.pages[i].extract_text() or ""
-            if t.strip():
-                return 1
-        return 0
-    except Exception:
-        return None
 
 ProgressCallback = Callable[[str, int, int, str], None]
 LogCallback = Callable[[str], None]
@@ -69,8 +45,8 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
 
     emit_progress("start", 0, 0, "Preparing scan...")
     emit_log(
-        "[RUN] Starting scan: root=%s, max_workers=%s, chunk_bytes=%s, pdf_pages=%s"
-        % (root, cfg.scanner.max_workers, cfg.scanner.io_chunk_bytes, cfg.scanner.probe_pdf_pages)
+        "[RUN] Starting scan: root=%s, max_workers=%s, chunk_bytes=%s"
+        % (root, cfg.scanner.max_workers, cfg.scanner.io_chunk_bytes)
     )
     db_path = Path(cfg.db.path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -140,9 +116,6 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
         ctime = utc(st.st_ctime)
         qh = quick_hash(path, cfg.scanner.io_chunk_bytes)
         ext = path.suffix.lower()
-        is_pdf_bd = None
-        if ext == ".pdf":
-            is_pdf_bd = born_digital_pdf(path, cfg.scanner.probe_pdf_pages)
         return dict(
             path_abs=str(path),
             dir=str(path.parent),
@@ -156,7 +129,7 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
             mime_hint=None,
             quick_hash=qh,
             sha256=None,
-            is_pdf_born_digital=is_pdf_bd,
+            is_pdf_born_digital=None,
             state="quick_hashed",
             error_code=None,
             error_msg=None,

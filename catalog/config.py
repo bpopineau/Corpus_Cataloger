@@ -7,7 +7,6 @@ import yaml
 class ScannerConfig(BaseModel):
     max_workers: int = 8
     io_chunk_bytes: int = 65536
-    probe_pdf_pages: int = 3
 
 class DBConfig(BaseModel):
     path: str = "data/projects.db"

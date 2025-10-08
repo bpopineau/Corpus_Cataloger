@@ -21,7 +21,6 @@ exclude_paths:
 scanner:
   max_workers: 20
   io_chunk_bytes: 256000
-  probe_pdf_pages: 1
 
 db:
   path: "data/projects.db"

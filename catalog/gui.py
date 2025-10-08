@@ -51,8 +51,8 @@ class ScanWorker(QtCore.QObject):
             if hasattr(cfg.scanner, key):
                 setattr(cfg.scanner, key, value)
         self.log.emit(
-            "[RUN] Effective scanner settings: max_workers=%s, chunk_bytes=%s, pdf_pages=%s"
-            % (cfg.scanner.max_workers, cfg.scanner.io_chunk_bytes, cfg.scanner.probe_pdf_pages)
+            "[RUN] Effective scanner settings: max_workers=%s, chunk_bytes=%s"
+            % (cfg.scanner.max_workers, cfg.scanner.io_chunk_bytes)
         )
         return cfg
 
@@ -104,12 +104,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.chunkSpin.setToolTip("Head/tail bytes read per file (KB)")
         settings_form.addRow("Chunk size", self.chunkSpin)
 
-        self.pdfSpin = QtWidgets.QSpinBox()
-        self.pdfSpin.setRange(1, 50)
-        self.pdfSpin.setValue(self._scanner_defaults.probe_pdf_pages)
-        self.pdfSpin.setToolTip("Pages inspected when probing PDF text")
-        settings_form.addRow("PDF probe pages", self.pdfSpin)
-
         layout.addWidget(settings_box)
 
         self.scanStatus = QtWidgets.QLabel("Idle")
@@ -153,7 +147,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.rootEdit.setText(cfg.roots[0])
                 self.workerSpin.setValue(cfg.scanner.max_workers)
                 self.chunkSpin.setValue(max(4, cfg.scanner.io_chunk_bytes // 1024))
-                self.pdfSpin.setValue(cfg.scanner.probe_pdf_pages)
             except Exception:
                 pass
 
@@ -222,23 +215,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.logView.clear()
         self.logView.appendPlainText(f"[INFO] Starting scan for: {root_path}")
         self.logView.appendPlainText(
-            "[INFO] Settings: workers=%s chunk=%sKB pdf_pages=%s"
+            "[INFO] Settings: workers=%s chunk=%sKB"
             % (
                 self.workerSpin.value(),
                 self.chunkSpin.value(),
-                self.pdfSpin.value(),
             )
         )
 
         self.workerSpin.setEnabled(False)
         self.chunkSpin.setEnabled(False)
-        self.pdfSpin.setEnabled(False)
 
         self._scan_thread = QtCore.QThread(self)
         overrides = dict(
             max_workers=self.workerSpin.value(),
             io_chunk_bytes=self.chunkSpin.value() * 1024,
-            probe_pdf_pages=self.pdfSpin.value(),
         )
         self._scan_worker = ScanWorker(
             root_path=root_path,
@@ -272,7 +262,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.browseBtn.setEnabled(True)
         self.workerSpin.setEnabled(True)
         self.chunkSpin.setEnabled(True)
-        self.pdfSpin.setEnabled(True)
         self.refresh_stats()
 
     @QtCore.Slot(str, int, int, str)
