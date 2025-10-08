@@ -22,6 +22,11 @@ scanner:
   max_workers: 8
   io_chunk_bytes: 65536
 
+dedupe:
+  enabled: true
+  max_workers: 8
+  small_file_threshold: 131072  # 128 KB - files smaller than this skip quick hash
+
 db:
   path: "data/projects.db"
   journal_mode: "WAL"

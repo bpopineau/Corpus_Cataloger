@@ -8,6 +8,11 @@ class ScannerConfig(BaseModel):
     max_workers: int = 8
     io_chunk_bytes: int = 65536
 
+class DedupeConfig(BaseModel):
+    enabled: bool = True
+    max_workers: int = 8
+    small_file_threshold: int = 131072  # 128 KB
+
 class DBConfig(BaseModel):
     path: str = "data/projects.db"
     journal_mode: str = "WAL"
@@ -22,6 +27,7 @@ class CatalogConfig(BaseModel):
     include_ext: List[str] = Field(default_factory=list)
     exclude_paths: List[str] = Field(default_factory=list)
     scanner: ScannerConfig = ScannerConfig()
+    dedupe: DedupeConfig = DedupeConfig()
     db: DBConfig = DBConfig()
     export: ExportConfig = ExportConfig()
 
