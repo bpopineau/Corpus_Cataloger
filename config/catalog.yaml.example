@@ -26,8 +26,10 @@ dedupe:
   enabled: true
   max_workers: 8
   small_file_threshold: 131072  # 128 KB - files smaller than this skip quick hash
-  quick_hash_bytes: 262144      # read 256 KB from head/tail for quick hash sampling
-  sha_chunk_bytes: 2097152      # stream SHA256 in 2 MB chunks
+  min_file_size: 262144          # 256 KB - skip files smaller than this entirely
+  min_duplicate_count: 5         # only hash size+ext groups with 5+ files (saves ~77% work)
+  quick_hash_bytes: 262144       # read 256 KB from head/tail for quick hash sampling
+  sha_chunk_bytes: 2097152       # stream SHA256 in 2 MB chunks
 
 db:
   path: "data/projects.db"

@@ -12,6 +12,8 @@ class DedupeConfig(BaseModel):
     enabled: bool = True
     max_workers: int = 8
     small_file_threshold: int = 131072  # 128 KB
+    min_file_size: int = 262144  # 256 KB - skip files smaller than this
+    min_duplicate_count: int = 5  # Only hash size+ext groups with this many files
     quick_hash_bytes: int = 262144  # 256 KB sampled from head/tail
     sha_chunk_bytes: int = 2 * 1024 * 1024  # 2 MB streaming chunks
 

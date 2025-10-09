@@ -60,6 +60,8 @@ def detect_duplicates(
 
     workers = max_workers or cfg.dedupe.max_workers or cfg.scanner.max_workers
     small_file_threshold = cfg.dedupe.small_file_threshold
+    min_file_size = cfg.dedupe.min_file_size
+    min_duplicate_count = cfg.dedupe.min_duplicate_count
     quick_hash_bytes = cfg.dedupe.quick_hash_bytes
     sha_chunk_bytes = cfg.dedupe.sha_chunk_bytes
     
@@ -68,7 +70,7 @@ def detect_duplicates(
         "[DEDUPE] Starting duplicate detection with "
         f"{workers} workers | quick_bytes={quick_hash_bytes:,} | sha_chunk={sha_chunk_bytes:,}"
     )
-    emit_log(f"[DEDUPE] Skipping quick hash for files smaller than {small_file_threshold:,} bytes")
+    emit_log(f"[DEDUPE] Filters: min_size={min_file_size:,} bytes | min_group={min_duplicate_count} files")
     
     db_path = Path(cfg.db.path)
     if not db_path.exists():
@@ -106,10 +108,11 @@ def detect_duplicates(
                 SELECT COUNT(*) AS cnt
                 FROM files
                 WHERE state NOT IN ('error', 'missing')
+                  AND size_bytes >= ?
                 GROUP BY size_bytes, COALESCE(ext, '')
-                HAVING COUNT(*) > 1
+                HAVING COUNT(*) >= ?
             ) AS grouped
-        """)
+        """, (min_file_size, min_duplicate_count))
         duplicate_population, duplicate_size_groups = cur.fetchone()
 
         skipped_singletons = max(0, total_active - duplicate_population)
@@ -131,8 +134,9 @@ def detect_duplicates(
                     SELECT size_bytes, COALESCE(ext, '') AS ext
                     FROM files
                     WHERE state NOT IN ('error', 'missing')
+                      AND size_bytes >= ?
                     GROUP BY size_bytes, COALESCE(ext, '')
-                    HAVING COUNT(*) > 1
+                    HAVING COUNT(*) >= ?
                 )
                 SELECT f.file_id, f.path_abs, f.size_bytes
                 FROM files f
@@ -143,7 +147,7 @@ def detect_duplicates(
                   AND f.state NOT IN ('error', 'missing')
                   AND f.size_bytes >= ?
                 ORDER BY f.size_bytes DESC
-            """, (small_file_threshold,))
+            """, (min_file_size, min_duplicate_count, small_file_threshold))
             
             candidates = cur.fetchall()
             total_candidates = len(candidates)
@@ -181,6 +185,10 @@ def detect_duplicates(
             processed = 0
             batch_updates = []
             batch_size = 500
+            
+            import time
+            start_time = time.time()
+            last_log_time = start_time
             
             with ThreadPoolExecutor(max_workers=workers) as ex:
                 futures = {ex.submit(compute_quick_hash, row): row for row in candidates}
@@ -222,12 +230,23 @@ def detect_duplicates(
                         batch_updates = []
                     
                     if processed % 100 == 0 or processed == total_candidates:
+                        elapsed = time.time() - start_time
+                        rate = processed / elapsed if elapsed > 0 else 0
+                        remaining = (total_candidates - processed) / rate if rate > 0 else 0
+                        eta_mins = remaining / 60
+                        
                         emit_progress("quick_hash", processed, total_candidates, 
-                                    f"Hashed {processed:,}/{total_candidates:,} files")
-                        emit_log(f"[QUICK] {processed:,}/{total_candidates:,} processed "
-                               f"({stats['quick_hash_count']:,} ok, "
-                               f"{stats['files_missing']:,} missing, "
-                               f"{stats['files_error']:,} errors)")
+                                    f"Hashed {processed:,}/{total_candidates:,} files ({rate:.1f}/s, ETA {eta_mins:.1f}m)")
+                        
+                        # Log every 30 seconds
+                        current_time = time.time()
+                        if current_time - last_log_time >= 30 or processed == total_candidates:
+                            emit_log(f"[QUICK] {processed:,}/{total_candidates:,} processed "
+                                   f"({stats['quick_hash_count']:,} ok, "
+                                   f"{stats['files_missing']:,} missing, "
+                                   f"{stats['files_error']:,} errors) "
+                                   f"| {rate:.1f} files/sec | ETA {eta_mins:.1f} min")
+                            last_log_time = current_time
             
             # Final batch commit
             if batch_updates:
@@ -251,8 +270,9 @@ def detect_duplicates(
                     SELECT size_bytes, COALESCE(ext, '') AS ext
                     FROM files
                     WHERE state NOT IN ('error', 'missing')
+                      AND size_bytes >= ?
                     GROUP BY size_bytes, COALESCE(ext, '')
-                    HAVING COUNT(*) > 1
+                    HAVING COUNT(*) >= ?
                 ),
                 duplicate_quick_hashes AS (
                     SELECT quick_hash
@@ -270,10 +290,10 @@ def detect_duplicates(
                   AND f.state NOT IN ('error', 'missing')
                   AND (
                     f.quick_hash IN (SELECT quick_hash FROM duplicate_quick_hashes)
-                    OR (f.size_bytes < ? AND f.quick_hash IS NULL)
+                    OR (f.size_bytes < ? AND f.quick_hash IS NULL AND f.size_bytes >= ?)
                   )
                 ORDER BY f.size_bytes DESC
-            """, (small_file_threshold,))
+            """, (min_file_size, min_duplicate_count, small_file_threshold, min_file_size))
             
             sha_candidates = cur.fetchall()
             total_sha = len(sha_candidates)
@@ -308,6 +328,9 @@ def detect_duplicates(
             
             processed_sha = 0
             batch_sha_updates = []
+            
+            sha_start_time = time.time()
+            sha_last_log_time = sha_start_time
             
             with ThreadPoolExecutor(max_workers=workers) as ex:
                 futures = {ex.submit(compute_sha256, row): row for row in sha_candidates}
@@ -348,9 +371,20 @@ def detect_duplicates(
                         batch_sha_updates = []
                     
                     if processed_sha % 50 == 0 or processed_sha == total_sha:
+                        sha_elapsed = time.time() - sha_start_time
+                        sha_rate = processed_sha / sha_elapsed if sha_elapsed > 0 else 0
+                        sha_remaining = (total_sha - processed_sha) / sha_rate if sha_rate > 0 else 0
+                        sha_eta_mins = sha_remaining / 60
+                        
                         emit_progress("sha256", processed_sha, total_sha,
-                                    f"Verified {processed_sha:,}/{total_sha:,} files")
-                        emit_log(f"[SHA256] {processed_sha:,}/{total_sha:,} processed")
+                                    f"Verified {processed_sha:,}/{total_sha:,} files ({sha_rate:.1f}/s, ETA {sha_eta_mins:.1f}m)")
+                        
+                        # Log every 30 seconds
+                        sha_current_time = time.time()
+                        if sha_current_time - sha_last_log_time >= 30 or processed_sha == total_sha:
+                            emit_log(f"[SHA256] {processed_sha:,}/{total_sha:,} processed "
+                                   f"| {sha_rate:.1f} files/sec | ETA {sha_eta_mins:.1f} min")
+                            sha_last_log_time = sha_current_time
             
             if batch_sha_updates:
                 cur.executemany("""
