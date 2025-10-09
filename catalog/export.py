@@ -18,10 +18,15 @@ def main():
         raise FileNotFoundError(f"Database not found: {db_path}")
     
     con = duckdb.connect(database=":memory:")
-    # Use parameterized query to prevent SQL injection
-    con.execute("ATTACH DATABASE ? AS cat (TYPE SQLITE);", (str(db_path),))
-    con.execute("COPY (SELECT * FROM cat.files) TO ? (FORMAT PARQUET, OVERWRITE TRUE);", (str(out / "files.parquet"),))
-    con.execute("COPY (SELECT * FROM cat.scans) TO ? (FORMAT PARQUET, OVERWRITE TRUE);", (str(out / "scans.parquet"),))
+    # DuckDB doesn't support parameter placeholders for ATTACH/COPY targets.
+    # Safely quote paths by doubling single quotes.
+    db_quoted = str(db_path).replace("'", "''")
+    files_out_quoted = str(out / "files.parquet").replace("'", "''")
+    scans_out_quoted = str(out / "scans.parquet").replace("'", "''")
+
+    con.execute(f"ATTACH DATABASE '{db_quoted}' AS cat (TYPE SQLITE);")
+    con.execute(f"COPY (SELECT * FROM cat.files) TO '{files_out_quoted}' (FORMAT PARQUET, OVERWRITE TRUE);")
+    con.execute(f"COPY (SELECT * FROM cat.scans) TO '{scans_out_quoted}' (FORMAT PARQUET, OVERWRITE TRUE);")
     con.close()
     print(f"[OK] Parquet written to {out}")
 
