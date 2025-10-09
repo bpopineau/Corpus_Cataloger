@@ -25,6 +25,11 @@ def detect_duplicates(
     enable_quick_hash: bool = True,
     enable_sha256: bool = True,
     max_workers: Optional[int] = None,
+    network_friendly: bool = False,
+    include_prefixes: Optional[List[str]] = None,
+    exclude_prefixes: Optional[List[str]] = None,
+    progressive: bool = False,
+    sample_bytes: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Run duplicate detection on files in the database.
@@ -62,6 +67,40 @@ def detect_duplicates(
     min_duplicate_count = cfg.dedupe.min_duplicate_count
     quick_hash_bytes = cfg.dedupe.quick_hash_bytes
     sha_chunk_bytes = cfg.dedupe.sha_chunk_bytes
+    if sample_bytes is None:
+        sample_bytes = min(cfg.dedupe.quick_hash_bytes, 64 * 1024)
+
+    # Network-friendly mode reduces read sizes and concurrency bursts
+    if network_friendly:
+        quick_hash_bytes = min(quick_hash_bytes, 64 * 1024)  # cap at 64 KiB
+        sha_chunk_bytes = min(sha_chunk_bytes, 256 * 1024)   # cap at 256 KiB
+        if max_workers is None:
+            workers = min(workers, 2)
+        # Also cap sampling size to keep reads small
+        sample_bytes = min(sample_bytes or 64 * 1024, 64 * 1024)
+
+    # Build optional path filters
+    include_prefixes = include_prefixes or []
+    exclude_prefixes = exclude_prefixes or []
+
+    def path_filter_sql(alias: str) -> Tuple[str, List[str]]:
+        clauses: List[str] = []
+        params: List[str] = []
+        if include_prefixes:
+            ors = []
+            for p in include_prefixes:
+                ors.append(f"{alias}.path_abs LIKE ?")
+                params.append(p.rstrip('\\/') + '%')
+            clauses.append('(' + ' OR '.join(ors) + ')')
+        if exclude_prefixes:
+            ors = []
+            for p in exclude_prefixes:
+                ors.append(f"{alias}.path_abs LIKE ?")
+                params.append(p.rstrip('\\/') + '%')
+            clauses.append('NOT (' + ' OR '.join(ors) + ')')
+        if clauses:
+            return ' AND ' + ' AND '.join(clauses) + ' ', params
+        return '', []
 
     emit_progress("start", 0, 0, "Initializing duplicate detection...")
     emit_log(
@@ -142,7 +181,8 @@ def detect_duplicates(
             emit_progress("quick_hash", 0, 0, "Finding candidates for quick hashing...")
 
             cur.execute("DROP TABLE IF EXISTS qh_candidates;")
-            cur.execute(
+            filt_sql, filt_params = path_filter_sql('f')
+            qh_sql = (
                 """
                 CREATE TEMP TABLE qh_candidates AS
                 WITH dup_candidates AS (
@@ -158,13 +198,14 @@ def detect_duplicates(
                 INNER JOIN dup_candidates dc
                   ON f.size_bytes = dc.size_bytes
                  AND COALESCE(f.ext, '') = dc.ext
-                WHERE f.quick_hash IS NULL
-                  AND f.state NOT IN ('error', 'missing')
-                  AND f.size_bytes >= ?
-                ;
-                """,
-                (min_file_size, min_duplicate_count, small_file_threshold),
+                                WHERE f.quick_hash IS NULL
+                                    AND f.state NOT IN ('error', 'missing')
+                                    AND f.size_bytes >= ?
+                """
+                + filt_sql +
+                ";"
             )
+            cur.execute(qh_sql, (min_file_size, min_duplicate_count, min_file_size, *filt_params))
             cur.execute("SELECT COUNT(*) FROM qh_candidates")
             total_candidates = cur.fetchone()[0]
             emit_log(
@@ -275,48 +316,259 @@ def detect_duplicates(
             emit_log("[STAGE 2] SHA256 verification")
             emit_progress("sha256", 0, 0, "Finding potential duplicates...")
 
-            cur.execute("DROP TABLE IF EXISTS sha_candidates;")
-            cur.execute(
-                """
-                CREATE TEMP TABLE sha_candidates AS
-                WITH dup_candidates AS (
-                    SELECT size_bytes, COALESCE(ext, '') AS ext
-                    FROM files
-                    WHERE state NOT IN ('error', 'missing')
-                      AND size_bytes >= ?
-                    GROUP BY size_bytes, COALESCE(ext, '')
-                    HAVING COUNT(*) >= ?
-                ),
-                duplicate_quick_hashes AS (
-                    SELECT quick_hash
-                    FROM files
-                    WHERE quick_hash IS NOT NULL
-                    GROUP BY quick_hash
-                    HAVING COUNT(*) > 1
+            if progressive:
+                # Progressive staged sampling: head hash (h1), then tail hash (h2), then full sha for remaining collisions
+                emit_log("[PROG] Progressive mode enabled")
+                cur.execute("DROP TABLE IF EXISTS prog_candidates;")
+                filt_sql, filt_params = path_filter_sql('f')
+                cur.execute(
+                    (
+                        """
+                        CREATE TEMP TABLE prog_candidates AS
+                        WITH dup_candidates AS (
+                            SELECT size_bytes, COALESCE(ext, '') AS ext
+                            FROM files
+                            WHERE state NOT IN ('error', 'missing')
+                              AND size_bytes >= ?
+                            GROUP BY size_bytes, COALESCE(ext, '')
+                            HAVING COUNT(*) >= ?
+                        )
+                        SELECT f.file_id, f.path_abs, f.size_bytes,
+                               NULL AS h1, NULL AS h2
+                        FROM files f
+                        INNER JOIN dup_candidates dc
+                          ON f.size_bytes = dc.size_bytes
+                         AND COALESCE(f.ext, '') = dc.ext
+                        WHERE f.sha256 IS NULL
+                          AND f.state NOT IN ('error', 'missing')
+                        """
+                        + filt_sql +
+                        ";"
+                    ),
+                    (min_file_size, min_duplicate_count, *filt_params),
                 )
-                SELECT f.file_id, f.path_abs, f.size_bytes, f.quick_hash
-                FROM files f
-                INNER JOIN dup_candidates dc
-                  ON f.size_bytes = dc.size_bytes
-                 AND COALESCE(f.ext, '') = dc.ext
-                WHERE f.sha256 IS NULL
-                  AND f.state NOT IN ('error', 'missing')
-                  AND (
-                    f.quick_hash IN (SELECT quick_hash FROM duplicate_quick_hashes)
-                    OR (f.size_bytes < ? AND f.quick_hash IS NULL AND f.size_bytes >= ?)
-                  )
-                ;
-                """,
-                (min_file_size, min_duplicate_count, small_file_threshold, min_file_size),
-            )
-            cur.execute("SELECT COUNT(*) FROM sha_candidates")
-            total_sha = cur.fetchone()[0]
-            emit_log(
-                f"[INFO] Found {total_sha:,} files needing SHA256 verification"
-            )
-            emit_progress(
-                "sha256", 0, total_sha, f"Verifying {total_sha:,} potential duplicates"
-            )
+
+                def _h_algo():
+                    try:
+                        from .util import xxhash  # type: ignore
+                        return 'xxhash'
+                    except Exception:
+                        return 'blake2b'
+
+                import hashlib
+
+                def hash_sample_head(path: Path, k: int) -> str:
+                    try:
+                        data = b""
+                        with path.open('rb', buffering=1024*64) as f:
+                            data = f.read(k)
+                        if _h_algo() == 'xxhash':
+                            from .util import xxhash  # type: ignore
+                            h = xxhash.xxh64()
+                            h.update(data)
+                            return h.hexdigest()
+                        else:
+                            return hashlib.blake2b(data, digest_size=16).hexdigest()
+                    except Exception as e:
+                        raise e
+
+                def hash_sample_tail(path: Path, k: int, size_bytes: int) -> str:
+                    try:
+                        read = min(k, max(0, size_bytes))
+                        if read == 0:
+                            return ""
+                        with path.open('rb', buffering=1024*64) as f:
+                            # Seek to tail start
+                            start = max(0, size_bytes - read)
+                            f.seek(start)
+                            data = f.read(read)
+                        if _h_algo() == 'xxhash':
+                            from .util import xxhash  # type: ignore
+                            h = xxhash.xxh64()
+                            h.update(data)
+                            return h.hexdigest()
+                        else:
+                            return hashlib.blake2b(data, digest_size=16).hexdigest()
+                    except Exception as e:
+                        raise e
+
+                # Stage 2.1: compute h1 (head hash) for all prog candidates
+                cur.execute("SELECT COUNT(*) FROM prog_candidates")
+                total_prog = cur.fetchone()[0]
+                emit_log(f"[PROG] Candidates: {total_prog:,}")
+                emit_progress("sha256", 0, total_prog, "Sampling file heads (h1)...")
+
+                PAGE = 10_000
+                last_rowid = 0
+                processed_h1 = 0
+                batch_h1_updates: List[Tuple[str, int]] = []
+
+                def compute_h1(rowid: int, file_id: int, path_abs: str) -> Tuple[int, int, str]:
+                    h1 = hash_sample_head(Path(path_abs), sample_bytes or 32768)
+                    return rowid, file_id, h1
+
+                with ThreadPoolExecutor(max_workers=workers) as ex:
+                    while not cancelled["flag"]:
+                        cur.execute(
+                            "SELECT rowid, file_id, path_abs FROM prog_candidates WHERE rowid > ? AND h1 IS NULL ORDER BY rowid LIMIT ?",
+                            (last_rowid, PAGE),
+                        )
+                        page = cur.fetchall()
+                        if not page:
+                            break
+                        h1_futures = [
+                            ex.submit(compute_h1, rowid, fid, pth)
+                            for rowid, fid, pth in page
+                        ]
+                        last_rowid = page[-1][0]
+                        for fut_h1 in as_completed(h1_futures):
+                            rowid, file_id, h1 = fut_h1.result()
+                            processed_h1 += 1
+                            batch_h1_updates.append((h1, int(file_id)))
+                            if len(batch_h1_updates) >= 1000:
+                                cur.executemany("UPDATE prog_candidates SET h1=? WHERE file_id=?", batch_h1_updates)
+                                con.commit()
+                                batch_h1_updates = []
+                            if processed_h1 % 200 == 0 or processed_h1 == total_prog:
+                                emit_progress("sha256", processed_h1, total_prog, "Sampling file heads (h1)...")
+                            if cancelled["flag"]:
+                                break
+                if batch_h1_updates:
+                    cur.executemany("UPDATE prog_candidates SET h1=? WHERE file_id=?", batch_h1_updates)
+                    con.commit()
+
+                # Stage 2.2: compute h2 (tail hash) only for collisions on (size, h1)
+                emit_progress("sha256", 0, 0, "Sampling file tails (h2) for collisions...")
+                cur.execute("DROP TABLE IF EXISTS h1_collisions;")
+                cur.execute(
+                    """
+                    CREATE TEMP TABLE h1_collisions AS
+                    SELECT p.file_id, p.path_abs, p.size_bytes
+                    FROM prog_candidates p
+                    JOIN (
+                        SELECT size_bytes, h1
+                        FROM prog_candidates
+                        WHERE h1 IS NOT NULL
+                        GROUP BY size_bytes, h1
+                        HAVING COUNT(*) > 1
+                    ) g
+                    ON p.size_bytes = g.size_bytes AND p.h1 = g.h1
+                    """
+                )
+                cur.execute("SELECT COUNT(*) FROM h1_collisions")
+                total_h1_col = cur.fetchone()[0]
+                emit_log(f"[PROG] H1 collision candidates: {total_h1_col:,}")
+                PAGE = 10_000
+                last_rowid = 0
+                processed_h2 = 0
+                batch_h2_updates: List[Tuple[str, int]] = []
+
+                def compute_h2(rowid: int, file_id: int, path_abs: str, size_bytes_val: int) -> Tuple[int, int, str]:
+                    h2 = hash_sample_tail(Path(path_abs), sample_bytes or 32768, size_bytes_val)
+                    return rowid, file_id, h2
+
+                with ThreadPoolExecutor(max_workers=workers) as ex:
+                    while not cancelled["flag"]:
+                        cur.execute(
+                            "SELECT rowid, file_id, path_abs, size_bytes FROM h1_collisions WHERE rowid > ? ORDER BY rowid LIMIT ?",
+                            (last_rowid, PAGE),
+                        )
+                        page = cur.fetchall()
+                        if not page:
+                            break
+                        h2_futures = [
+                            ex.submit(compute_h2, rowid, fid, pth, sz)
+                            for rowid, fid, pth, sz in page
+                        ]
+                        last_rowid = page[-1][0]
+                        for fut_h2 in as_completed(h2_futures):
+                            rowid, file_id, h2 = fut_h2.result()
+                            processed_h2 += 1
+                            batch_h2_updates.append((h2, int(file_id)))
+                            if len(batch_h2_updates) >= 1000:
+                                cur.executemany("UPDATE prog_candidates SET h2=? WHERE file_id=?", batch_h2_updates)
+                                con.commit()
+                                batch_h2_updates = []
+                            if processed_h2 % 200 == 0 or processed_h2 == total_h1_col:
+                                emit_progress("sha256", processed_h2, total_h1_col, "Sampling file tails (h2) for collisions...")
+                            if cancelled["flag"]:
+                                break
+                if batch_h2_updates:
+                    cur.executemany("UPDATE prog_candidates SET h2=? WHERE file_id=?", batch_h2_updates)
+                    con.commit()
+
+                # Stage 2.3: derive sha_candidates from (size, h1, h2) groups with count > 1
+                cur.execute("DROP TABLE IF EXISTS sha_candidates;")
+                cur.execute(
+                    """
+                    CREATE TEMP TABLE sha_candidates AS
+                    SELECT p.file_id, p.path_abs, p.size_bytes, NULL AS quick_hash
+                    FROM prog_candidates p
+                    JOIN (
+                        SELECT size_bytes, h1, h2
+                        FROM prog_candidates
+                        WHERE h1 IS NOT NULL AND h2 IS NOT NULL
+                        GROUP BY size_bytes, h1, h2
+                        HAVING COUNT(*) > 1
+                    ) g
+                    ON p.size_bytes = g.size_bytes AND p.h1 = g.h1 AND p.h2 = g.h2
+                    """
+                )
+                cur.execute("SELECT COUNT(*) FROM sha_candidates")
+                total_sha = cur.fetchone()[0]
+                emit_log(f"[PROG] Proceeding to full SHA for {total_sha:,} files")
+                emit_progress("sha256", 0, total_sha, f"Verifying {total_sha:,} potential duplicates")
+
+            else:
+                # Original SHA candidates path (quick-hash centric)
+                cur.execute("DROP TABLE IF EXISTS sha_candidates;")
+                filt_sql, filt_params = path_filter_sql('f')
+                sha_sql = (
+                    """
+                    CREATE TEMP TABLE sha_candidates AS
+                    WITH dup_candidates AS (
+                        SELECT size_bytes, COALESCE(ext, '') AS ext
+                        FROM files
+                        WHERE state NOT IN ('error', 'missing')
+                          AND size_bytes >= ?
+                        GROUP BY size_bytes, COALESCE(ext, '')
+                        HAVING COUNT(*) >= ?
+                    ),
+                    duplicate_quick_hashes AS (
+                        SELECT quick_hash
+                        FROM files
+                        WHERE quick_hash IS NOT NULL
+                        GROUP BY quick_hash
+                        HAVING COUNT(*) > 1
+                    )
+                    SELECT f.file_id, f.path_abs, f.size_bytes, f.quick_hash
+                    FROM files f
+                    INNER JOIN dup_candidates dc
+                      ON f.size_bytes = dc.size_bytes
+                     AND COALESCE(f.ext, '') = dc.ext
+                    WHERE f.sha256 IS NULL
+                      AND f.state NOT IN ('error', 'missing')
+                    """
+                )
+                if network_friendly:
+                    sha_sql += " AND f.quick_hash IN (SELECT quick_hash FROM duplicate_quick_hashes) "
+                    sha_params = [min_file_size, min_duplicate_count]
+                else:
+                    sha_sql += (
+                        " AND ( f.quick_hash IN (SELECT quick_hash FROM duplicate_quick_hashes)"
+                        " OR (f.size_bytes < ? AND f.quick_hash IS NULL AND f.size_bytes >= ?) ) "
+                    )
+                    sha_params = [min_file_size, min_duplicate_count, small_file_threshold, min_file_size]
+                sha_sql += filt_sql + ";"
+                cur.execute(sha_sql, (*sha_params, *filt_params))
+                cur.execute("SELECT COUNT(*) FROM sha_candidates")
+                total_sha = cur.fetchone()[0]
+                emit_log(
+                    f"[INFO] Found {total_sha:,} files needing SHA256 verification"
+                )
+                emit_progress(
+                    "sha256", 0, total_sha, f"Verifying {total_sha:,} potential duplicates"
+                )
 
             def compute_sha256(row: Tuple[int, str, int, Optional[str]]) -> Dict[str, Any]:
                 file_id, path_abs, size_bytes, quick_hash_existing = row
@@ -441,16 +693,15 @@ def detect_duplicates(
         # Stage 3: Identify duplicates
         emit_progress("analyze", 0, 0, "Analyzing duplicates...")
         emit_log("[STAGE 3] Analyzing duplicate groups")
+        filt_sql, filt_params = path_filter_sql('f')
         cur.execute(
             """
             SELECT sha256, COUNT(*) as count, SUM(size_bytes) as total_size
-            FROM files
+            FROM files f
             WHERE sha256 IS NOT NULL
               AND state NOT IN ('error', 'missing')
-            GROUP BY sha256
-            HAVING COUNT(*) > 1
-            ORDER BY total_size DESC
-            """
+            """ + filt_sql + " GROUP BY sha256 HAVING COUNT(*) > 1 ORDER BY total_size DESC",
+            (*filt_params,),
         )
         duplicate_groups = cur.fetchall()
         stats["duplicate_groups"] = len(duplicate_groups)
@@ -483,7 +734,12 @@ def detect_duplicates(
             pass
 
 
-def get_duplicate_report(db_path: Path, limit: int = 100) -> List[Dict]:
+def get_duplicate_report(
+    db_path: Path,
+    limit: int = 100,
+    include_prefixes: Optional[List[str]] = None,
+    exclude_prefixes: Optional[List[str]] = None,
+) -> List[Dict]:
     """
     Get a report of duplicate files with details.
     
@@ -494,32 +750,59 @@ def get_duplicate_report(db_path: Path, limit: int = 100) -> List[Dict]:
     - total_wasted: Wasted space (total - one copy)
     - paths: List of file paths
     """
+    include_prefixes = include_prefixes or []
+    exclude_prefixes = exclude_prefixes or []
+
+    def path_filter_sql(alias: str) -> Tuple[str, List[str]]:
+        clauses: List[str] = []
+        params: List[str] = []
+        if include_prefixes:
+            ors = []
+            for p in include_prefixes:
+                ors.append(f"{alias}.path_abs LIKE ?")
+                params.append(p.rstrip('\\/') + '%')
+            clauses.append('(' + ' OR '.join(ors) + ')')
+        if exclude_prefixes:
+            ors = []
+            for p in exclude_prefixes:
+                ors.append(f"{alias}.path_abs LIKE ?")
+                params.append(p.rstrip('\\/') + '%')
+            clauses.append('NOT (' + ' OR '.join(ors) + ')')
+        if clauses:
+            return ' AND ' + ' AND '.join(clauses) + ' ', params
+        return '', []
+
     con = connect(db_path)
     try:
         cur = con.cursor()
-        
-        cur.execute("""
+
+        filt_sql, filt_params = path_filter_sql('f')
+        cur.execute(
+            """
             SELECT sha256, COUNT(*) as count, size_bytes
-            FROM files
+            FROM files f
             WHERE sha256 IS NOT NULL
               AND state NOT IN ('error', 'missing')
-            GROUP BY sha256
-            HAVING COUNT(*) > 1
-            ORDER BY size_bytes * (COUNT(*) - 1) DESC
-            LIMIT ?
-        """, (limit,))
+            """
+            + filt_sql +
+            " GROUP BY sha256 HAVING COUNT(*) > 1 ORDER BY size_bytes * (COUNT(*) - 1) DESC LIMIT ?",
+            (*filt_params, limit),
+        )
         
         results = []
         for row in cur.fetchall():
             sha256, count, size_bytes = row
             
             # Get all paths for this duplicate group
-            cur.execute("""
+            path_filt_sql, path_filt_params = path_filter_sql('f')
+            cur.execute(
+                """
                 SELECT path_abs, mtime_utc
-                FROM files
+                FROM files f
                 WHERE sha256 = ?
-                ORDER BY mtime_utc ASC
-            """, (sha256,))
+                """ + path_filt_sql + " ORDER BY mtime_utc ASC",
+                (sha256, *path_filt_params),
+            )
             
             paths = [{"path": p[0], "mtime": p[1]} for p in cur.fetchall()]
             
@@ -541,6 +824,11 @@ def main():
     ap = argparse.ArgumentParser(description="Corpus Cataloger - Duplicate Detection")
     ap.add_argument("--config", required=True, help="Path to config file")
     ap.add_argument("--max-workers", type=int, default=None, help="Number of worker threads")
+    ap.add_argument("--network-friendly", action="store_true", help="Reduce network I/O (lower concurrency, smaller quick-hash window)")
+    ap.add_argument("--include-prefix", action="append", default=None, help="Only process files with absolute paths starting with this prefix (can repeat)")
+    ap.add_argument("--exclude-prefix", action="append", default=None, help="Skip files with absolute paths starting with this prefix (can repeat)")
+    ap.add_argument("--progressive", action="store_true", help="Progressive staged sampling (head/tail) before full SHA")
+    ap.add_argument("--sample-bytes", type=int, default=None, help="Bytes to read for head/tail sampling (default: min(quick_hash_bytes, 64KiB))")
     ap.add_argument("--skip-quick-hash", action="store_true", help="Skip quick hash stage")
     ap.add_argument("--skip-sha256", action="store_true", help="Skip SHA256 stage")
     ap.add_argument("--report", action="store_true", help="Show duplicate report after detection")
@@ -555,7 +843,12 @@ def main():
             cfg,
             enable_quick_hash=not args.skip_quick_hash,
             enable_sha256=not args.skip_sha256,
-            max_workers=args.max_workers
+            max_workers=args.max_workers,
+            network_friendly=args.network_friendly,
+            include_prefixes=args.include_prefix or [],
+            exclude_prefixes=args.exclude_prefix or [],
+            progressive=args.progressive,
+            sample_bytes=args.sample_bytes,
         )
         
         print("\n" + "=" * 70)
@@ -575,7 +868,12 @@ def main():
         print(f"TOP {args.report_limit} DUPLICATE GROUPS (by wasted space)")
         print("=" * 70)
         
-        report = get_duplicate_report(Path(cfg.db.path), args.report_limit)
+        report = get_duplicate_report(
+            Path(cfg.db.path),
+            args.report_limit,
+            include_prefixes=args.include_prefix or [],
+            exclude_prefixes=args.exclude_prefix or [],
+        )
         
         for i, group in enumerate(report, 1):
             wasted_mb = group["total_wasted"] / (1024**2)
