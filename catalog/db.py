@@ -53,5 +53,26 @@ def connect(db_path: Path) -> sqlite3.Connection:
     return con
 
 def migrate(con: sqlite3.Connection) -> None:
-    con.executescript(DDL)
-    con.commit()
+  con.executescript(DDL)
+  # Schema upgrades: add columns if missing
+  cur = con.cursor()
+  cur.execute("PRAGMA table_info(files)")
+  cols = {row[1] for row in cur.fetchall()}
+  upgrades = []
+  if 'h1' not in cols:
+    upgrades.append("ALTER TABLE files ADD COLUMN h1 TEXT")
+  if 'h2' not in cols:
+    upgrades.append("ALTER TABLE files ADD COLUMN h2 TEXT")
+  if 'blake3' not in cols:
+    upgrades.append("ALTER TABLE files ADD COLUMN blake3 TEXT")
+  for sql in upgrades:
+    cur.execute(sql)
+  # Add indexes for new columns (create if not exists)
+  cur.executescript(
+    """
+    CREATE INDEX IF NOT EXISTS idx_files_h1_size ON files(size_bytes, h1);
+    CREATE INDEX IF NOT EXISTS idx_files_h1_h2_size ON files(size_bytes, h1, h2);
+    CREATE INDEX IF NOT EXISTS idx_files_blake3 ON files(blake3);
+    """
+  )
+  con.commit()

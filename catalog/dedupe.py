@@ -14,6 +14,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .config import CatalogConfig, load_config
 from .db import connect, migrate
 from .util import quick_hash, sha256_file
+try:
+    import blake3  # type: ignore
+    HAS_BLAKE3 = True
+except Exception:
+    HAS_BLAKE3 = False
 
 # Callback type aliases (kept local for loose coupling)
 ProgressCallback = Callable[[str, int, int, str], None]
@@ -31,6 +36,7 @@ def detect_duplicates(
     progressive: bool = False,
     sample_bytes: Optional[int] = None,
     io_bytes_per_sec: Optional[int] = None,
+    use_blake3: bool = False,
 ) -> Dict[str, Any]:
     """
     Run duplicate detection on files in the database.
@@ -322,6 +328,7 @@ def detect_duplicates(
                 emit_log("[PROG] Progressive mode enabled")
                 cur.execute("DROP TABLE IF EXISTS prog_candidates;")
                 filt_sql, filt_params = path_filter_sql('f')
+                # Bring over persisted h1/h2 to avoid recomputation when unchanged
                 cur.execute(
                     (
                         """
@@ -335,7 +342,7 @@ def detect_duplicates(
                             HAVING COUNT(*) >= ?
                         )
                         SELECT f.file_id, f.path_abs, f.size_bytes,
-                               NULL AS h1, NULL AS h2
+                               f.h1 AS h1, f.h2 AS h2, f.mtime_utc
                         FROM files f
                         INNER JOIN dup_candidates dc
                           ON f.size_bytes = dc.size_bytes
@@ -502,6 +509,15 @@ def detect_duplicates(
                     cur.executemany("UPDATE prog_candidates SET h2=? WHERE file_id=?", batch_h2_updates)
                     con.commit()
 
+                # Persist h1/h2 to files for reuse in future runs
+                cur.execute(
+                    "UPDATE files SET h1=(SELECT h1 FROM prog_candidates WHERE prog_candidates.file_id=files.file_id) WHERE file_id IN (SELECT file_id FROM prog_candidates WHERE h1 IS NOT NULL)"
+                )
+                cur.execute(
+                    "UPDATE files SET h2=(SELECT h2 FROM prog_candidates WHERE prog_candidates.file_id=files.file_id) WHERE file_id IN (SELECT file_id FROM prog_candidates WHERE h2 IS NOT NULL)"
+                )
+                con.commit()
+
                 # Stage 2.3: derive sha_candidates from (size, h1, h2) groups with count > 1
                 cur.execute("DROP TABLE IF EXISTS sha_candidates;")
                 cur.execute(
@@ -614,16 +630,37 @@ def detect_duplicates(
                         qh = h.hexdigest()
                         return {"file_id": file_id, "status": "success", "sha256": sha, "quick_hash": qh}
                     else:
-                        if io_bytes_per_sec and io_bytes_per_sec > 0:
-                            sha = _sha256_file_throttled(path, sha_chunk_bytes, io_bytes_per_sec)
+                        if use_blake3 and HAS_BLAKE3:
+                            # Compute BLAKE3 and SHA-256 in one pass to avoid extra I/O
+                            import hashlib
+                            sha_hasher = hashlib.sha256()
+                            b3_hasher = blake3.blake3()
+                            with path.open('rb', buffering=1024*64) as f:
+                                while True:
+                                    chunk = f.read(sha_chunk_bytes)
+                                    if not chunk:
+                                        break
+                                    sha_hasher.update(chunk)
+                                    b3_hasher.update(chunk)
+                                    if io_bytes_per_sec:
+                                        time.sleep(len(chunk) / float(io_bytes_per_sec))
+                            return {
+                                "file_id": file_id,
+                                "status": "success",
+                                "sha256": sha_hasher.hexdigest(),
+                                "blake3": b3_hasher.hexdigest(),
+                            }
                         else:
-                            sha = sha256_file(path, sha_chunk_bytes)
-                        return {"file_id": file_id, "status": "success", "sha256": sha}
+                            if io_bytes_per_sec and io_bytes_per_sec > 0:
+                                sha = _sha256_file_throttled(path, sha_chunk_bytes, io_bytes_per_sec)
+                            else:
+                                sha = sha256_file(path, sha_chunk_bytes)
+                            return {"file_id": file_id, "status": "success", "sha256": sha}
                 except Exception as e:
                     return {"file_id": file_id, "status": "error", "error": str(e)}
 
             processed_sha = 0
-            batch_sha_updates: List[Tuple[str, str, Optional[str], int]] = []
+            batch_sha_updates: List[Tuple[Optional[str], str, Optional[str], Optional[str], int]] = []
             batch_size_sha = 500
             sha_start_time = time.time()
             sha_last_log_time = sha_start_time
@@ -650,9 +687,10 @@ def detect_duplicates(
                         if result["status"] == "success":
                             batch_sha_updates.append(
                                 (
-                                    result["sha256"],
+                                    result.get("sha256"),
                                     "sha_verified",
                                     result.get("quick_hash"),
+                                    result.get("blake3"),
                                     result["file_id"],
                                 )
                             )
@@ -672,7 +710,7 @@ def detect_duplicates(
 
                         if len(batch_sha_updates) >= batch_size_sha:
                             cur.executemany(
-                                "UPDATE files SET sha256=?, state=?, quick_hash=COALESCE(quick_hash, ?) WHERE file_id=?",
+                                "UPDATE files SET sha256=COALESCE(?, sha256), state=?, quick_hash=COALESCE(quick_hash, ?), blake3=COALESCE(?, blake3) WHERE file_id=?",
                                 batch_sha_updates,
                             )
                             con.commit()
@@ -702,7 +740,7 @@ def detect_duplicates(
 
                 if batch_sha_updates:
                     cur.executemany(
-                        "UPDATE files SET sha256=?, state=?, quick_hash=COALESCE(quick_hash, ?) WHERE file_id=?",
+                        "UPDATE files SET sha256=COALESCE(?, sha256), state=?, quick_hash=COALESCE(quick_hash, ?), blake3=COALESCE(?, blake3) WHERE file_id=?",
                         batch_sha_updates,
                     )
                     con.commit()
@@ -847,9 +885,10 @@ def main():
     ap.add_argument("--network-friendly", action="store_true", help="Reduce network I/O (lower concurrency, smaller quick-hash window)")
     ap.add_argument("--include-prefix", action="append", default=None, help="Only process files with absolute paths starting with this prefix (can repeat)")
     ap.add_argument("--exclude-prefix", action="append", default=None, help="Skip files with absolute paths starting with this prefix (can repeat)")
-    ap.add_argument("--progressive", action="store_true", help="Progressive staged sampling (head/tail) before full SHA")
+    ap.add_argument("--progressive", action="store_true", help="Progressive staged sampling (head/tail) before full SHA; persists h1/h2 in DB")
     ap.add_argument("--sample-bytes", type=int, default=None, help="Bytes to read for head/tail sampling (default: min(quick_hash_bytes, 64KiB))")
     ap.add_argument("--io-bytes-per-sec", type=int, default=None, help="Throttle file reading to this many bytes/sec (approximate)")
+    ap.add_argument("--blake3", action="store_true", help="Use BLAKE3 for full-file hashing (fast) and confirm duplicates with SHA-256")
     ap.add_argument("--skip-quick-hash", action="store_true", help="Skip quick hash stage")
     ap.add_argument("--skip-sha256", action="store_true", help="Skip SHA256 stage")
     ap.add_argument("--report", action="store_true", help="Show duplicate report after detection")
@@ -871,6 +910,7 @@ def main():
             progressive=args.progressive,
             sample_bytes=args.sample_bytes,
             io_bytes_per_sec=args.io_bytes_per_sec,
+            use_blake3=args.blake3,
         )
         
         print("\n" + "=" * 70)
