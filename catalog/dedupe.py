@@ -37,6 +37,7 @@ def detect_duplicates(
     sample_bytes: Optional[int] = None,
     io_bytes_per_sec: Optional[int] = None,
     use_blake3: bool = False,
+    metadata_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Run duplicate detection on files in the database.
@@ -86,6 +87,38 @@ def detect_duplicates(
         # Also cap sampling size to keep reads small
         sample_bytes = min(sample_bytes or 64 * 1024, 64 * 1024)
 
+    # Global I/O rate limiter (token bucket) applied across all workers
+    from threading import Lock
+    class ByteRateLimiter:
+        def __init__(self, rate_bps: int, burst: Optional[int] = None) -> None:
+            self.rate = max(1, int(rate_bps))
+            self.capacity = int(burst or self.rate)
+            self.tokens = float(self.capacity)
+            self.last = time.monotonic()
+            self._lock = Lock()
+
+        def acquire(self, n: int) -> None:
+            if n <= 0:
+                return
+            while True:
+                now = time.monotonic()
+                with self._lock:
+                    elapsed = now - self.last
+                    if elapsed > 0:
+                        self.tokens = min(self.capacity, self.tokens + elapsed * self.rate)
+                        self.last = now
+                    if self.tokens >= n:
+                        self.tokens -= n
+                        return
+                    needed = n - self.tokens
+                # Sleep outside the lock to let others progress
+                to_sleep = max(0.001, needed / float(self.rate))
+                time.sleep(to_sleep)
+
+    limiter: Optional[ByteRateLimiter] = None
+    if io_bytes_per_sec and io_bytes_per_sec > 0:
+        limiter = ByteRateLimiter(io_bytes_per_sec)
+
     # Build optional path filters
     include_prefixes = include_prefixes or []
     exclude_prefixes = exclude_prefixes or []
@@ -110,8 +143,9 @@ def detect_duplicates(
         return '', []
 
     emit_progress("start", 0, 0, "Initializing duplicate detection...")
+    mode_label = "metadata-only" if metadata_only else "hash"
     emit_log(
-        "[DEDUPE] Starting duplicate detection with "
+        "[DEDUPE] Starting duplicate detection (mode=" + mode_label + ") with "
         f"{workers} workers | quick_bytes={quick_hash_bytes:,} | sha_chunk={sha_chunk_bytes:,}"
     )
     emit_log(
@@ -154,33 +188,98 @@ def detect_duplicates(
         cur = con.cursor()
 
         # High-level counts
-        cur.execute(
-            "SELECT COUNT(*) FROM files WHERE state NOT IN ('error', 'missing')"
-        )
-        total_active = cur.fetchone()[0]
+        def compute_scope_counts() -> Tuple[int, int, int, int]:
+            cur.execute(
+                "SELECT COUNT(*) FROM files WHERE state NOT IN ('error', 'missing')"
+            )
+            total_active = cur.fetchone()[0]
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(cnt), 0) AS duplicate_population, COUNT(*) AS duplicate_groups
+                FROM (
+                    SELECT COUNT(*) AS cnt
+                    FROM files
+                    WHERE state NOT IN ('error', 'missing')
+                      AND size_bytes >= ?
+                    GROUP BY size_bytes, COALESCE(ext, '')
+                    HAVING COUNT(*) >= ?
+                ) AS grouped
+                """,
+                (min_file_size, min_duplicate_count),
+            )
+            duplicate_population, duplicate_size_groups = cur.fetchone()
+            skipped_singletons = max(0, total_active - duplicate_population)
+            return total_active, duplicate_population, duplicate_size_groups, skipped_singletons
 
-        cur.execute(
-            """
-            SELECT COALESCE(SUM(cnt), 0) AS duplicate_population, COUNT(*) AS duplicate_groups
-            FROM (
-                SELECT COUNT(*) AS cnt
-                FROM files
-                WHERE state NOT IN ('error', 'missing')
-                  AND size_bytes >= ?
-                GROUP BY size_bytes, COALESCE(ext, '')
-                HAVING COUNT(*) >= ?
-            ) AS grouped
-            """,
-            (min_file_size, min_duplicate_count),
-        )
-        duplicate_population, duplicate_size_groups = cur.fetchone()
-        skipped_singletons = max(0, total_active - duplicate_population)
+        total_active, duplicate_population, duplicate_size_groups, skipped_singletons = compute_scope_counts()
         emit_log(
             f"[INFO] Active files: {total_active:,} | duplicate size groups: {duplicate_size_groups:,}"
         )
         emit_log(
             f"[INFO] Targeting {duplicate_population:,} files across shared sizes; skipping ~{skipped_singletons:,} singleton files"
         )
+
+        if metadata_only:
+            emit_log("[META] Running metadata-only duplicate scan (size + basename)")
+            filt_sql, filt_params = path_filter_sql('f')
+            cur.execute(
+                """
+                WITH dup_meta AS (
+                    SELECT size_bytes, LOWER(name) AS name_key, COALESCE(ext, '') AS ext_key
+                    FROM files f
+                    WHERE state NOT IN ('error', 'missing')
+                      AND size_bytes >= ?
+                    """ + filt_sql + """
+                    GROUP BY size_bytes, LOWER(name), COALESCE(ext, '')
+                    HAVING COUNT(*) >= ?
+                )
+                SELECT f.file_id, f.path_abs, f.size_bytes, f.name, f.ext, f.mtime_utc
+                FROM files f
+                JOIN dup_meta dm
+                  ON f.size_bytes = dm.size_bytes
+                 AND LOWER(f.name) = dm.name_key
+                 AND COALESCE(f.ext, '') = dm.ext_key
+                WHERE f.state NOT IN ('error', 'missing')
+                ORDER BY f.size_bytes DESC, LOWER(f.name)
+                """,
+                (min_file_size, *filt_params, min_duplicate_count),
+            )
+            rows = cur.fetchall()
+            emit_log(f"[META] Candidate rows: {len(rows):,}")
+            groups: Dict[Tuple[int, str, str], List[Tuple[str, str]]] = {}
+            for row in rows:
+                _, path_abs, size_bytes_val, name_val, ext_val, mtime_val = row
+                key = (size_bytes_val, name_val.lower(), (ext_val or '').lower())
+                groups.setdefault(key, []).append((path_abs, mtime_val))
+            metadata_groups: List[Dict[str, Any]] = []
+            duplicate_groups_count = 0
+            duplicate_files_count = 0
+            for key, members in groups.items():
+                if len(members) <= 1:
+                    continue
+                duplicate_groups_count += 1
+                duplicate_files_count += len(members)
+                metadata_groups.append(
+                    {
+                        "size_bytes": key[0],
+                        "name": key[1],
+                        "ext": key[2],
+                        "members": [
+                            {"path": path, "mtime": mtime}
+                            for path, mtime in members
+                        ],
+                    }
+                )
+            stats["duplicate_groups"] = duplicate_groups_count
+            stats["duplicate_files"] = duplicate_files_count
+            stats["metadata_groups"] = metadata_groups
+            stats["files_processed"] = len(rows)
+            emit_log(f"[META] Found {stats['duplicate_groups']:,} metadata duplicate groups")
+            total_wasted_bytes = sum(key[0] * (len(members) - 1) for key, members in groups.items() if len(members) > 1)
+            emit_log(f"[META] Estimated wasted space: ~{total_wasted_bytes / (1024**3):.2f} GB")
+            emit_progress("done", stats["duplicate_files"], stats["duplicate_files"], "Metadata duplicate detection complete")
+            emit_log("[DONE] Metadata duplicate detection complete")
+            return stats
 
         # Stage 1: Quick Hash
         if enable_quick_hash:
@@ -228,7 +327,34 @@ def detect_duplicates(
                 if not path.exists():
                     return {"file_id": file_id, "status": "missing", "error": "File not found on disk"}
                 try:
-                    qh = quick_hash(path, quick_hash_bytes)
+                    if limiter is None:
+                        qh = quick_hash(path, quick_hash_bytes)
+                    else:
+                        # Throttled quick-hash: read head and tail with global limiter
+                        import hashlib
+                        try:
+                            from .util import xxhash  # type: ignore
+                        except Exception:
+                            xxhash = None  # type: ignore
+                        size = path.stat().st_size
+                        n = int(quick_hash_bytes)
+                        h = xxhash.xxh64() if xxhash else hashlib.sha1()
+                        h.update(str(size).encode())
+                        with path.open('rb', buffering=1024*64) as f:
+                            head = f.read(n)
+                            if head:
+                                limiter.acquire(len(head))
+                                h.update(head)
+                            if size > n:
+                                try:
+                                    f.seek(max(0, size - n))
+                                except OSError:
+                                    pass
+                                tail = f.read(n)
+                                if tail:
+                                    limiter.acquire(len(tail))
+                                    h.update(tail)
+                        qh = h.hexdigest()
                     return {"file_id": file_id, "status": "success", "quick_hash": qh}
                 except Exception as e:
                     return {"file_id": file_id, "status": "error", "error": str(e)}
@@ -370,8 +496,8 @@ def detect_duplicates(
                         data = b""
                         with path.open('rb', buffering=1024*64) as f:
                             data = f.read(k)
-                        if io_bytes_per_sec and len(data) > 0:
-                            time.sleep(len(data) / float(io_bytes_per_sec))
+                        if limiter and len(data) > 0:
+                            limiter.acquire(len(data))
                         if _h_algo() == 'xxhash':
                             from .util import xxhash  # type: ignore
                             h = xxhash.xxh64()
@@ -392,8 +518,8 @@ def detect_duplicates(
                             start = max(0, size_bytes - read)
                             f.seek(start)
                             data = f.read(read)
-                        if io_bytes_per_sec and len(data) > 0:
-                            time.sleep(len(data) / float(io_bytes_per_sec))
+                        if limiter and len(data) > 0:
+                            limiter.acquire(len(data))
                         if _h_algo() == 'xxhash':
                             from .util import xxhash  # type: ignore
                             h = xxhash.xxh64()
@@ -600,6 +726,7 @@ def detect_duplicates(
                         if not chunk:
                             break
                         hasher.update(chunk)
+                        # Legacy per-thread throttle; prefer global limiter when present
                         time.sleep(len(chunk) / float(bps))
                 return hasher.hexdigest()
 
@@ -610,25 +737,45 @@ def detect_duplicates(
                     return {"file_id": file_id, "status": "missing", "error": "File not found on disk"}
                 try:
                     if size_bytes < small_file_threshold and not quick_hash_existing:
-                        data = path.read_bytes()
+                        # Small file fast-path with optional global throttling
                         import hashlib
-                        sha = hashlib.sha256(data).hexdigest()
+                        hasher = hashlib.sha256()
+                        # Also produce quick-hash if missing
                         try:
                             from .util import xxhash
                         except Exception:
                             xxhash = None  # type: ignore
-                        n = quick_hash_bytes
-                        h = xxhash.xxh64() if xxhash else hashlib.sha1()
-                        h.update(str(size_bytes).encode())
-                        head = data[:n]
-                        if head:
-                            h.update(head)
-                        if size_bytes > n:
-                            tail = data[-n:]
-                            if tail:
-                                h.update(tail)
-                        qh = h.hexdigest()
-                        return {"file_id": file_id, "status": "success", "sha256": sha, "quick_hash": qh}
+                        n = int(quick_hash_bytes)
+                        qh_h = xxhash.xxh64() if xxhash else hashlib.sha1()
+                        qh_h.update(str(size_bytes).encode())
+                        head_rem = n
+                        tail_buf = bytearray()
+                        with path.open('rb', buffering=1024*64) as f:
+                            while True:
+                                chunk = f.read(min(sha_chunk_bytes, 64 * 1024))
+                                if not chunk:
+                                    break
+                                if limiter:
+                                    limiter.acquire(len(chunk))
+                                hasher.update(chunk)
+                                # Capture head bytes for quick-hash
+                                if head_rem > 0:
+                                    take = min(head_rem, len(chunk))
+                                    qh_h.update(chunk[:take])
+                                    head_rem -= take
+                                # Maintain tail buffer up to n bytes
+                                if n > 0:
+                                    if len(tail_buf) >= n:
+                                        # ensure we don't grow unbounded
+                                        excess = len(tail_buf) + len(chunk) - n
+                                        if excess > 0:
+                                            tail_buf = tail_buf[excess:]
+                                    tail_buf.extend(chunk)
+                                    if len(tail_buf) > n:
+                                        tail_buf = tail_buf[-n:]
+                        if n > 0 and len(tail_buf) > 0 and size_bytes > n:
+                            qh_h.update(bytes(tail_buf[-n:]))
+                        return {"file_id": file_id, "status": "success", "sha256": hasher.hexdigest(), "quick_hash": qh_h.hexdigest()}
                     else:
                         if use_blake3 and HAS_BLAKE3:
                             # Compute BLAKE3 and SHA-256 in one pass to avoid extra I/O
@@ -642,8 +789,8 @@ def detect_duplicates(
                                         break
                                     sha_hasher.update(chunk)
                                     b3_hasher.update(chunk)
-                                    if io_bytes_per_sec:
-                                        time.sleep(len(chunk) / float(io_bytes_per_sec))
+                                    if limiter:
+                                        limiter.acquire(len(chunk))
                             return {
                                 "file_id": file_id,
                                 "status": "success",
@@ -651,10 +798,22 @@ def detect_duplicates(
                                 "blake3": b3_hasher.hexdigest(),
                             }
                         else:
-                            if io_bytes_per_sec and io_bytes_per_sec > 0:
-                                sha = _sha256_file_throttled(path, sha_chunk_bytes, io_bytes_per_sec)
+                            if limiter:
+                                import hashlib
+                                hasher = hashlib.sha256()
+                                with path.open('rb', buffering=1024*64) as f:
+                                    while True:
+                                        chunk = f.read(sha_chunk_bytes)
+                                        if not chunk:
+                                            break
+                                        hasher.update(chunk)
+                                        limiter.acquire(len(chunk))
+                                sha = hasher.hexdigest()
                             else:
-                                sha = sha256_file(path, sha_chunk_bytes)
+                                if io_bytes_per_sec and io_bytes_per_sec > 0:
+                                    sha = _sha256_file_throttled(path, sha_chunk_bytes, io_bytes_per_sec)
+                                else:
+                                    sha = sha256_file(path, sha_chunk_bytes)
                             return {"file_id": file_id, "status": "success", "sha256": sha}
                 except Exception as e:
                     return {"file_id": file_id, "status": "error", "error": str(e)}
@@ -891,6 +1050,7 @@ def main():
     ap.add_argument("--blake3", action="store_true", help="Use BLAKE3 for full-file hashing (fast) and confirm duplicates with SHA-256")
     ap.add_argument("--skip-quick-hash", action="store_true", help="Skip quick hash stage")
     ap.add_argument("--skip-sha256", action="store_true", help="Skip SHA256 stage")
+    ap.add_argument("--metadata-only", action="store_true", help="Use metadata-only duplicate detection (size+name) without hashing")
     ap.add_argument("--report", action="store_true", help="Show duplicate report after detection")
     ap.add_argument("--report-only", action="store_true", help="Only show report, skip detection")
     ap.add_argument("--report-limit", type=int, default=100, help="Limit number of duplicate groups in report")
@@ -898,11 +1058,19 @@ def main():
     
     cfg = load_config(Path(args.config))
     
-    if not args.report_only:
+    stats: Optional[Dict[str, Any]] = None
+
+    if args.metadata_only and args.report_only:
+        print("Metadata-only mode ignores --report-only; running detection instead.")
+
+    if not args.report_only or args.metadata_only:
+        enable_quick_hash = False if args.metadata_only else not args.skip_quick_hash
+        enable_sha256 = False if args.metadata_only else not args.skip_sha256
+
         stats = detect_duplicates(
             cfg,
-            enable_quick_hash=not args.skip_quick_hash,
-            enable_sha256=not args.skip_sha256,
+            enable_quick_hash=enable_quick_hash,
+            enable_sha256=enable_sha256,
             max_workers=args.max_workers,
             network_friendly=args.network_friendly,
             include_prefixes=args.include_prefix or [],
@@ -911,6 +1079,7 @@ def main():
             sample_bytes=args.sample_bytes,
             io_bytes_per_sec=args.io_bytes_per_sec,
             use_blake3=args.blake3,
+            metadata_only=args.metadata_only,
         )
         
         print("\n" + "=" * 70)
@@ -924,7 +1093,22 @@ def main():
         print(f"Duplicate groups:      {stats['duplicate_groups']:>10,}")
         print(f"Total duplicate files: {stats['duplicate_files']:>10,}")
         print("=" * 70)
+        if args.metadata_only and stats.get("metadata_groups"):
+            print("\nTop metadata duplicate groups (size, name, count):")
+            for group in stats["metadata_groups"][: min(10, len(stats["metadata_groups"]))]:
+                size_mb = group["size_bytes"] / (1024**2)
+                print(f"  - {group['name']} ({group['ext'] or ''}) | {len(group['members'])} copies | {size_mb:.2f} MB each")
+                for member in group["members"][:3]:
+                    print(f"      • {member['path']}")
+                if len(group["members"]) > 3:
+                    print(f"      • ... {len(group['members']) - 3} more")
     
+    if args.metadata_only and (args.report or args.report_only):
+        print("\nMetadata-only mode does not compute SHA256 hashes; skipping hash-based duplicate report.")
+        if stats and stats.get("metadata_groups"):
+            print("Top metadata duplicate groups already listed above.")
+        return
+
     if args.report or args.report_only:
         print("\n" + "=" * 70)
         print(f"TOP {args.report_limit} DUPLICATE GROUPS (by wasted space)")
