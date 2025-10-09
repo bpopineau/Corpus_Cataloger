@@ -106,7 +106,7 @@ def detect_duplicates(
                 SELECT COUNT(*) AS cnt
                 FROM files
                 WHERE state NOT IN ('error', 'missing')
-                GROUP BY size_bytes
+                GROUP BY size_bytes, COALESCE(ext, '')
                 HAVING COUNT(*) > 1
             ) AS grouped
         """)
@@ -125,18 +125,20 @@ def detect_duplicates(
             emit_log("[STAGE 1] Quick hash generation")
             emit_progress("quick_hash", 0, 0, "Finding candidates for quick hashing...")
 
-            # Find files that need quick hashing (only files sharing sizes)
+            # Find files that need quick hashing (only files sharing sizes/extensions)
             cur.execute("""
-                WITH duplicate_sizes AS (
-                    SELECT size_bytes
+                WITH dup_candidates AS (
+                    SELECT size_bytes, COALESCE(ext, '') AS ext
                     FROM files
                     WHERE state NOT IN ('error', 'missing')
-                    GROUP BY size_bytes
+                    GROUP BY size_bytes, COALESCE(ext, '')
                     HAVING COUNT(*) > 1
                 )
                 SELECT f.file_id, f.path_abs, f.size_bytes
                 FROM files f
-                INNER JOIN duplicate_sizes ds ON f.size_bytes = ds.size_bytes
+                INNER JOIN dup_candidates dc
+                  ON f.size_bytes = dc.size_bytes
+                 AND COALESCE(f.ext, '') = dc.ext
                 WHERE f.quick_hash IS NULL
                   AND f.state NOT IN ('error', 'missing')
                   AND f.size_bytes >= ?
@@ -245,11 +247,11 @@ def detect_duplicates(
 
             # Find files that have matching quick_hash OR are small files needing SHA256
             cur.execute("""
-                WITH duplicate_sizes AS (
-                    SELECT size_bytes
+                WITH dup_candidates AS (
+                    SELECT size_bytes, COALESCE(ext, '') AS ext
                     FROM files
                     WHERE state NOT IN ('error', 'missing')
-                    GROUP BY size_bytes
+                    GROUP BY size_bytes, COALESCE(ext, '')
                     HAVING COUNT(*) > 1
                 ),
                 duplicate_quick_hashes AS (
@@ -261,7 +263,9 @@ def detect_duplicates(
                 )
                 SELECT f.file_id, f.path_abs, f.size_bytes
                 FROM files f
-                INNER JOIN duplicate_sizes ds ON f.size_bytes = ds.size_bytes
+                INNER JOIN dup_candidates dc
+                  ON f.size_bytes = dc.size_bytes
+                 AND COALESCE(f.ext, '') = dc.ext
                 WHERE f.sha256 IS NULL
                   AND f.state NOT IN ('error', 'missing')
                   AND (
