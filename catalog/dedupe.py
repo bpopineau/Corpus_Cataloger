@@ -30,6 +30,7 @@ def detect_duplicates(
     exclude_prefixes: Optional[List[str]] = None,
     progressive: bool = False,
     sample_bytes: Optional[int] = None,
+    io_bytes_per_sec: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Run duplicate detection on files in the database.
@@ -362,6 +363,8 @@ def detect_duplicates(
                         data = b""
                         with path.open('rb', buffering=1024*64) as f:
                             data = f.read(k)
+                        if io_bytes_per_sec and len(data) > 0:
+                            time.sleep(len(data) / float(io_bytes_per_sec))
                         if _h_algo() == 'xxhash':
                             from .util import xxhash  # type: ignore
                             h = xxhash.xxh64()
@@ -382,6 +385,8 @@ def detect_duplicates(
                             start = max(0, size_bytes - read)
                             f.seek(start)
                             data = f.read(read)
+                        if io_bytes_per_sec and len(data) > 0:
+                            time.sleep(len(data) / float(io_bytes_per_sec))
                         if _h_algo() == 'xxhash':
                             from .util import xxhash  # type: ignore
                             h = xxhash.xxh64()
@@ -570,6 +575,18 @@ def detect_duplicates(
                     "sha256", 0, total_sha, f"Verifying {total_sha:,} potential duplicates"
                 )
 
+            def _sha256_file_throttled(path: Path, chunk_size: int, bps: int) -> str:
+                import hashlib
+                hasher = hashlib.sha256()
+                with path.open('rb', buffering=1024*64) as f:
+                    while True:
+                        chunk = f.read(chunk_size)
+                        if not chunk:
+                            break
+                        hasher.update(chunk)
+                        time.sleep(len(chunk) / float(bps))
+                return hasher.hexdigest()
+
             def compute_sha256(row: Tuple[int, str, int, Optional[str]]) -> Dict[str, Any]:
                 file_id, path_abs, size_bytes, quick_hash_existing = row
                 path = Path(path_abs)
@@ -597,7 +614,10 @@ def detect_duplicates(
                         qh = h.hexdigest()
                         return {"file_id": file_id, "status": "success", "sha256": sha, "quick_hash": qh}
                     else:
-                        sha = sha256_file(path, sha_chunk_bytes)
+                        if io_bytes_per_sec and io_bytes_per_sec > 0:
+                            sha = _sha256_file_throttled(path, sha_chunk_bytes, io_bytes_per_sec)
+                        else:
+                            sha = sha256_file(path, sha_chunk_bytes)
                         return {"file_id": file_id, "status": "success", "sha256": sha}
                 except Exception as e:
                     return {"file_id": file_id, "status": "error", "error": str(e)}
@@ -829,6 +849,7 @@ def main():
     ap.add_argument("--exclude-prefix", action="append", default=None, help="Skip files with absolute paths starting with this prefix (can repeat)")
     ap.add_argument("--progressive", action="store_true", help="Progressive staged sampling (head/tail) before full SHA")
     ap.add_argument("--sample-bytes", type=int, default=None, help="Bytes to read for head/tail sampling (default: min(quick_hash_bytes, 64KiB))")
+    ap.add_argument("--io-bytes-per-sec", type=int, default=None, help="Throttle file reading to this many bytes/sec (approximate)")
     ap.add_argument("--skip-quick-hash", action="store_true", help="Skip quick hash stage")
     ap.add_argument("--skip-sha256", action="store_true", help="Skip SHA256 stage")
     ap.add_argument("--report", action="store_true", help="Show duplicate report after detection")
@@ -849,6 +870,7 @@ def main():
             exclude_prefixes=args.exclude_prefix or [],
             progressive=args.progressive,
             sample_bytes=args.sample_bytes,
+            io_bytes_per_sec=args.io_bytes_per_sec,
         )
         
         print("\n" + "=" * 70)
