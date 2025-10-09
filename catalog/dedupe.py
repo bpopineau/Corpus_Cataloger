@@ -5,7 +5,7 @@ Duplicate detection module using two-stage hashing:
 2. Full SHA256 for cryptographic verification of potential duplicates
 """
 from __future__ import annotations
-import argparse
+import argparse, signal, sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from datetime import datetime
@@ -89,7 +89,19 @@ def detect_duplicates(
         "duplicate_files": 0,
     }
     
+    cancelled = {"flag": False}
+    def _handle_sigint(signum, frame):  # noqa: ARG001
+        cancelled["flag"] = True
     try:
+        signal.signal(signal.SIGINT, _handle_sigint)
+    except Exception:
+        pass
+
+    try:
+        try:
+            con.set_progress_handler(lambda: 1 if cancelled["flag"] else 0, 10000)
+        except Exception:
+            pass
         migrate(con)
         cur = con.cursor()
 
@@ -191,9 +203,19 @@ def detect_duplicates(
             last_log_time = start_time
             
             with ThreadPoolExecutor(max_workers=workers) as ex:
-                futures = {ex.submit(compute_quick_hash, row): row for row in candidates}
-                
-                for fut in as_completed(futures):
+                # Submit in batches to bound memory and improve responsiveness
+                BATCH_SUBMIT = 5000
+                idx = 0
+                futures = {}
+                def _submit_more():
+                    nonlocal idx
+                    remaining = candidates[idx:idx+BATCH_SUBMIT]
+                    for row in remaining:
+                        futures[ex.submit(compute_quick_hash, row)] = row
+                    idx += len(remaining)
+
+                _submit_more()
+                for fut in as_completed(list(futures.keys())):
                     result = fut.result()
                     processed += 1
                     
@@ -247,6 +269,14 @@ def detect_duplicates(
                                    f"{stats['files_error']:,} errors) "
                                    f"| {rate:.1f} files/sec | ETA {eta_mins:.1f} min")
                             last_log_time = current_time
+
+                    if cancelled["flag"]:
+                        emit_log("[CANCEL] Stopping quick-hash (Ctrl+C)")
+                        break
+
+                    # Top up futures when we drain a batch
+                    if processed % BATCH_SUBMIT == 0 and idx < total_candidates:
+                        _submit_more()
             
             # Final batch commit
             if batch_updates:
@@ -333,9 +363,18 @@ def detect_duplicates(
             sha_last_log_time = sha_start_time
             
             with ThreadPoolExecutor(max_workers=workers) as ex:
-                futures = {ex.submit(compute_sha256, row): row for row in sha_candidates}
-                
-                for fut in as_completed(futures):
+                BATCH_SUBMIT = 2000
+                idx = 0
+                futures = {}
+                def _submit_more():
+                    nonlocal idx
+                    remaining = sha_candidates[idx:idx+BATCH_SUBMIT]
+                    for row in remaining:
+                        futures[ex.submit(compute_sha256, row)] = row
+                    idx += len(remaining)
+
+                _submit_more()
+                for fut in as_completed(list(futures.keys())):
                     result = fut.result()
                     processed_sha += 1
                     
@@ -385,6 +424,13 @@ def detect_duplicates(
                             emit_log(f"[SHA256] {processed_sha:,}/{total_sha:,} processed "
                                    f"| {sha_rate:.1f} files/sec | ETA {sha_eta_mins:.1f} min")
                             sha_last_log_time = sha_current_time
+
+                    if cancelled["flag"]:
+                        emit_log("[CANCEL] Stopping SHA256 (Ctrl+C)")
+                        break
+
+                    if processed_sha % BATCH_SUBMIT == 0 and idx < total_sha:
+                        _submit_more()
             
             if batch_sha_updates:
                 cur.executemany("""

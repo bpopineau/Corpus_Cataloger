@@ -32,10 +32,15 @@ CREATE TABLE IF NOT EXISTS files (
   last_seen_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_files_quick ON files(size_bytes, quick_hash);
+CREATE INDEX IF NOT EXISTS idx_files_quick_hash ON files(quick_hash);
 CREATE INDEX IF NOT EXISTS idx_files_sha256 ON files(sha256);
 CREATE INDEX IF NOT EXISTS idx_files_ext ON files(ext);
+CREATE INDEX IF NOT EXISTS idx_files_size_ext ON files(size_bytes, ext);
 CREATE INDEX IF NOT EXISTS idx_files_dir ON files(dir);
 CREATE INDEX IF NOT EXISTS idx_files_state ON files(state);
+CREATE INDEX IF NOT EXISTS idx_files_path ON files(path_abs);
+CREATE INDEX IF NOT EXISTS idx_files_mtime ON files(mtime_utc);
+CREATE INDEX IF NOT EXISTS idx_files_ctime ON files(ctime_utc);
 """
 
 def connect(db_path: Path) -> sqlite3.Connection:
@@ -44,6 +49,7 @@ def connect(db_path: Path) -> sqlite3.Connection:
     con.execute("PRAGMA foreign_keys=ON;")
     con.execute("PRAGMA journal_mode=WAL;")
     con.execute("PRAGMA synchronous=NORMAL;")
+    con.execute("PRAGMA busy_timeout=5000;")
     return con
 
 def migrate(con: sqlite3.Connection) -> None:

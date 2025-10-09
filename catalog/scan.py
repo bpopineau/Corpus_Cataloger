@@ -1,6 +1,6 @@
 # catalog/scan.py
 from __future__ import annotations
-import argparse, os, socket, getpass
+import argparse, os, socket, getpass, signal, sys
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
@@ -48,6 +48,16 @@ def _error_record(path: Path, code: str, message: str) -> Dict:
 
 
 def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallback] = None, log_cb: Optional[LogCallback] = None) -> None:
+    cancelled = {"flag": False}
+
+    def _handle_sigint(signum, frame):  # noqa: ARG001
+        cancelled["flag"] = True
+
+    # Install Ctrl+C handler once per process
+    try:
+        signal.signal(signal.SIGINT, _handle_sigint)
+    except Exception:
+        pass
     def emit_progress(stage: str, current: int, total: int, message: str) -> None:
         if not progress_cb:
             return
@@ -73,6 +83,11 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
     db_path = Path(cfg.db.path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     con = connect(db_path)
+    # Allow long operations to be interruptible
+    try:
+        con.set_progress_handler(lambda: 1 if cancelled["flag"] else 0, 10000)
+    except Exception:
+        pass
     try:
         migrate(con)
         cur = con.cursor()
@@ -99,6 +114,9 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
         emit_log("[INFO] Enumerating filesystem...")
         emit_progress("enumerating", 0, 0, "Walking directories...")
         for dirpath, dirnames, filenames in os.walk(root):
+            if cancelled["flag"]:
+                emit_log("[CANCEL] Stopping enumeration (Ctrl+C)")
+                break
             dpath = Path(dirpath)
             if should_skip_path(dpath, excludes):
                 continue
@@ -207,8 +225,21 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
             batch_rows = []
 
         with ThreadPoolExecutor(max_workers=cfg.scanner.max_workers) as ex:
-            fut_map = {ex.submit(process, p): p for p in files_to_process}
-            for i, fut in enumerate(as_completed(fut_map), 1):
+            # Submit work in chunks to keep memory bounded and improve responsiveness
+            CHUNK = 5000
+            submitted = 0
+            fut_map = {}
+            i = 0
+            def _submit_chunk(start: int) -> None:
+                nonlocal submitted, fut_map
+                batch = files_to_process[start:start+CHUNK]
+                for p in batch:
+                    fut_map[ex.submit(process, p)] = p
+                submitted += len(batch)
+
+            _submit_chunk(0)
+            for fut in as_completed(list(fut_map.keys())):
+                i += 1
                 try:
                     row = fut.result()
                 except Exception as e:
@@ -243,6 +274,12 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
                     emit_progress("processing", i, total, f"Processed {i} of {total} files")
                 if total and (i % 500 == 0 or i == total):
                     emit_log(f"[PROCESS] {i}/{total} files processed")
+                # Top up submissions when we drain a chunk
+                if cancelled["flag"]:
+                    emit_log("[CANCEL] Stopping processing (Ctrl+C)")
+                    break
+                if i % CHUNK == 0 and submitted < total:
+                    _submit_chunk(submitted)
 
         flush_batch()
 
@@ -280,4 +317,8 @@ def main():
         scan_root(r, cfg)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n[CTRL-C] Scan interrupted by user")
+        sys.exit(130)

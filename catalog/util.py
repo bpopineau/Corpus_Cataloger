@@ -16,7 +16,8 @@ def quick_hash(path: Path, head_tail_bytes: int = 65536) -> str:
     h = xxhash.xxh64() if xxhash else hashlib.sha1()
     h.update(str(size).encode())
     n = head_tail_bytes
-    with open(path, "rb", buffering=0) as f:
+    # Use buffered I/O for better throughput on Windows/network shares
+    with open(path, "rb") as f:
         head = f.read(n)
         if head:
             h.update(head)
@@ -32,7 +33,8 @@ def quick_hash(path: Path, head_tail_bytes: int = 65536) -> str:
 
 def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
     h = hashlib.sha256()
-    with open(path, "rb", buffering=0) as f:
+    # Buffered I/O tends to perform better across platforms
+    with open(path, "rb") as f:
         while True:
             b = f.read(chunk_size)
             if not b:
