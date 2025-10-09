@@ -41,3 +41,27 @@ For static type checking with mypy or editor integrations, the project ships the
 ```powershell
 pip install -r requirements.txt
 ```
+
+## Utility: analyze_extensions.py
+
+Summarize file extensions present in the catalog database with graceful cancellation.
+
+Examples:
+
+```powershell
+python analyze_extensions.py --top 20 --samples 2
+python analyze_extensions.py --db data/projects.db --no-categories --quiet
+```
+
+Flags:
+
+- `--db PATH` — path to SQLite DB (default: `data/projects.db`).
+- `--samples N` — number of sample filenames per extension (default: 3).
+- `--top N` — only show the top N extensions by count.
+- `--no-categories` — skip categorized analysis section.
+- `--quiet` — reduce extra headers.
+
+Notes:
+
+- Press Ctrl+C to cancel; long-running queries are interruptible.
+- For very large databases, prefer `--top` and a smaller `--samples` to keep output fast.
