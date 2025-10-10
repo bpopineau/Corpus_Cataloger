@@ -2,7 +2,7 @@
 from __future__ import annotations
 import argparse, os, socket, getpass, signal, sys
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 from datetime import datetime, timezone
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -298,12 +298,12 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
         # Ensure database connection is properly closed
         con.close()
 
-def main():
+def main(argv: Optional[Iterable[str]] = None) -> None:
     ap = argparse.ArgumentParser(description="Corpus Cataloger - Scanner")
     ap.add_argument("--config", required=True)
     ap.add_argument("--max-workers", type=int, default=None)
     ap.add_argument("--root", action="append")
-    args = ap.parse_args()
+    args = ap.parse_args(list(argv) if argv is not None else None)
 
     cfg = load_config(Path(args.config))
     if args.max_workers:

@@ -3,7 +3,16 @@ __pycache__/
 .venv/
 .DS_Store
 Thumbs.db
+/.vscode/
+/.idea/
 /data/
 /logs/
 /build/
 /dist/
+/data/parquet/
+*.log
+*.tmp
+*.bak
+*.db-shm
+*.db-wal
+/robocopy_*.log

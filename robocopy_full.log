@@ -1,319 +1,0 @@
-
--------------------------------------------------------------------------------
-   ROBOCOPY     ::     Robust File Copy for Windows                              
--------------------------------------------------------------------------------
-
-  Started : Friday, October 10, 2025 11:49:30 AM
-   Source : S:\
-     Dest : C:\Users\brand\Projects\Server\
-
-    Files : *.*
-	    
-  Options : *.* /BYTES /TEE /S /E /DCOPY:DA /COPY:DAT /PURGE /MIR /MT:8 /R:2 /W:5 
-
-------------------------------------------------------------------------------
-
-	    New File  		   19737	S:\1 Jobs\1 Current Jobs\1 Current Job Listings.xlsx100%  
-	    New File  		  493914	S:\1 Jobs\1 Current Jobs\2022 EEA form.pdf100%  
-	    New File  		  146094	S:\1 Jobs\1 Current Jobs\Apprenticeship Program Information - search results.pdf100%  
-	    New File  		  217600	S:\1 Jobs\1 Current Jobs\Construction Agreement - Basic 2022.doc100%  
-	    New File  		  170727	S:\1 Jobs\1 Current Jobs\Division of Apprenticeship Standards - Minimum Ratios.pdf100%  
-	    New File  		   88696	S:\1 Jobs\1 Current Jobs\ElecCalcs.xlsx100%  
-	    New File  		   69357	S:\1 Jobs\1 Current Jobs\ESSCO Logo - Copy.pdf100%  
-	    New File  		    9732	S:\1 Jobs\1 Current Jobs\ESSCO Logo JPEG Photo File 2.jpg100%  
-	    New File  		   10765	S:\1 Jobs\1 Current Jobs\ESSCO Logo JPEG Photo File Cropped.jpg100%  
-	    New File  		   28691	S:\1 Jobs\1 Current Jobs\ESSCO Logo JPEG Photo File.jpg100%  
-	    New File  		   69185	S:\1 Jobs\1 Current Jobs\ESSCO Logo.pdf100%  
-	    New File  		   51645	S:\1 Jobs\1 Current Jobs\ESSCO Project Management  fee schedule_5.1.23.pdf100%  
-	    New File  		  618213	S:\1 Jobs\1 Current Jobs\ESSCO Subcontract_updated 250411.pdf100%  
-	    New File  		   54784	S:\1 Jobs\1 Current Jobs\Highlighted Job List.doc100%  
-	    New File  		 3927601	S:\1 Jobs\1 Current Jobs\IMG_4793.JPG100%  
-	    New File  		  678572	S:\1 Jobs\1 Current Jobs\LADWP Guide_to_Electric_Service.pdf100%  
-	    New File  		   17082	S:\1 Jobs\1 Current Jobs\LETTER OF TRANSMITTAL EMPTY FORM2025.docx100%  
-	    New File  		   84480	S:\1 Jobs\1 Current Jobs\LETTER OF TRANSMITTAL-Pullboxes.doc100%  
-	    New File  		  127498	S:\1 Jobs\1 Current Jobs\Masonry_Concrete Box.png100%  
-	    New File  		    8416	S:\1 Jobs\1 Current Jobs\plot.log100%  
-	    New File  		   30205	S:\1 Jobs\1 Current Jobs\Preconstruction Check off List.pdf100%  
-	    New File  		   12518	S:\1 Jobs\1 Current Jobs\Preconstruction Check off List.xlsx100%  
-	    New File  		   27648	S:\1 Jobs\1 Current Jobs\Preliminary Info Request.doc100%  
-	    New File  		   41463	S:\1 Jobs\1 Current Jobs\Project Manager Task List-ML 2022.xlsx100%  
-	    New File  		   17553	S:\1 Jobs\1 Current Jobs\ResponseSheet_TEMPLATE.xlsx100%  
-	    New File  		   17533	S:\1 Jobs\1 Current Jobs\Reviews for 2022.xlsx100%  
-	    New File  		   64512	S:\1 Jobs\1 Current Jobs\Thumbs.db100%  
-	    New File  		   14023	S:\1 Jobs\1 Current Jobs\Tim's List Bellflower.docx100%  
-	    New File  		 3838523	S:\1 Jobs\1 Current Jobs\timesheets_250602.pdf100%  
-	    New File  		 4057808	S:\1 Jobs\1 Current Jobs\tims.pdf100%  
-	    New File  		  217517	S:\1 Jobs\1 Current Jobs\Title Block - Unflattened - Copy.pdf100%  
-	    New File  		    8784	S:\1 Jobs\1 Current Jobs\Upcoming Small Projects 2.23.24.xlsx100%  
-	    New File  		  185801	S:\1 Jobs\2 Completed Jobs\1275 - from Swinerton to ESSCO COI Contractor Certificate Automation.pdf100%  
-	    New File  		   32256	S:\1 Jobs\2 Completed Jobs\Thumbs.db100%  
-	    New File  		  374272	S:\1 Jobs\3 Misc Service Jobs\aaa   M JOBS.xls100%  
-	    New File  		  130560	S:\1 Jobs\3 Misc Service Jobs\Thumbs.db100%  
-	    New File  		     165	S:\1 Jobs\5 Monitoring Solar Sites\CLARTS Kiosk View.url100%  
-	    New File  		     144	S:\1 Jobs\5 Monitoring Solar Sites\CPS login IBEW-CLARTS.url100%  
-	    New File  		     162	S:\1 Jobs\5 Monitoring Solar Sites\ETI Kiosk View.url100%  
-	    New File  		   12332	S:\1 Jobs\5 Monitoring Solar Sites\EXCEL SHEET FOR ALL LOGIN INFORMATION.xlsx100%  
-	    New File  		     165	S:\1 Jobs\5 Monitoring Solar Sites\IBEW Pasadena Kiosk View.url100%  
-	    New File  		   50176	S:\1 Jobs\Contract Templates\Prime Contract Form_TL 1.25.232.doc100%  
-	    New File  		    9511	S:\1 Jobs\Lien Releases\Cond Final Release.wpd100%  
-	    New File  		   20636	S:\1 Jobs\Lien Releases\Conditional Final.pdf100%  
-	    New File  		   27049	S:\1 Jobs\Lien Releases\Conditional Progress.pdf100%  
-	    New File  		  248339	S:\1 Jobs\Lien Releases\Conditional ReleaseOnFinalPayment.pdf100%  
-	    New File  		  238378	S:\1 Jobs\Lien Releases\ConditionalRelease Accurate Concrete Sawing.pdf100%  
-	    New File  		  249125	S:\1 Jobs\Lien Releases\ConditionalReleaseOnFinalPayment from ESSCO.pdf100%  
-	    New File  		  249560	S:\1 Jobs\Lien Releases\ConditionalWaiverAndReleaseOnFinalPayment.pdf100%  
-	    New File  		  239441	S:\1 Jobs\Lien Releases\ConditionalWaiverAndReleaseOnProgressPayment.pdf100%  
-	    New File  		     746	S:\1 Jobs\Lien Releases\maxdesk.ini100%  
-	    New File  		  407632	S:\1 Jobs\Lien Releases\PPThumbs.ptn  0%  100%  
-	    New File  		   35421	S:\1 Jobs\Lien Releases\Release of Stop Notice 3-2012 final.pdf 99%  100%  
-	    New File  		  101376	S:\1 Jobs\Lien Releases\Thumbs.db100%  
-	    New File  		  458181	S:\1 Jobs\Lien Releases\Unconditional Final.pdf100%  
-	    New File  		  242269	S:\1 Jobs\Lien Releases\Unconditional Release  Conner Communications.pdf100%  
-	    New File  		  242128	S:\1 Jobs\Lien Releases\Unconditional Release  Graybar-1152.pdf100%  
-	    New File  		  245141	S:\1 Jobs\Lien Releases\Unconditional Release  thru Oct.pdf100%  
-	    New File  		  242829	S:\1 Jobs\Lien Releases\Unconditional Release St. Lucys.pdf100%  
-	    New File  		  238870	S:\1 Jobs\Lien Releases\UnconditionalWaiverAndReleaseOnFinalPayment.pdf100%  
-	    New File  		  242945	S:\1 Jobs\Lien Releases\UnconditionalWaiverAndReleaseOnProgressPayment.pdf100%  
-	    New File  		  100481	S:\5 Financial and Accounting\2019\09 30 18 Income Statement.pdf100%  
-	    New File  		  571562	S:\5 Financial and Accounting\2019\12 31 18 Balance Sheet.pdf100%  
-	    New File  		  706705	S:\5 Financial and Accounting\2019\12 31 18 Income Statement.pdf100%  
-	    New File  		 1372482	S:\5 Financial and Accounting\2019\607.1B - PFS - Certification ABB Stan.pdf100%  
-	    New File  		 1241695	S:\5 Financial and Accounting\2019\607.1B - PFS - Certification ABB.pdf100%  
-	    New File  		 1448153	S:\5 Financial and Accounting\2019\ABB Line of Credit 03 01 19.pdf100%  
-	    New File  		   11625	S:\5 Financial and Accounting\2019\Backlog WIP 06 30 20.xlsx100%  
-	    New File  		  271137	S:\5 Financial and Accounting\2019\ESSCO Client Inquiries 6-30-19.pdf  0%  100%  
-	    New File  		  214914	S:\5 Financial and Accounting\2019\ESSCO Financial Statements 6-30-2019.pdf100%  
-	    New File  		  249429	S:\5 Financial and Accounting\2019\ESSCO Financial Statements with Contract Schedules 6-30-2019.pdf100%  
-	    New File  		 1021784	S:\5 Financial and Accounting\2019\ESSCO Financial Statements with Contract Schedules 6-30-2019_DRAFT.pdf100%  
-	    New File  		 1256249	S:\5 Financial and Accounting\2019\Federal Tax Return 06.30.19.pdf100%  
-	    New File  		 1493758	S:\5 Financial and Accounting\2019\Ford Ranger Purchase 08 27 19.pdf100%  
-	    New File  		   29207	S:\5 Financial and Accounting\2019\Inventory 2019 Extension 2.xls100%  
-	    New File  		   28556	S:\5 Financial and Accounting\2019\Inventory 2019 Extension.xls100%  
-	    New File  		   20068	S:\5 Financial and Accounting\2019\Inventory 2019 Extension.xlsx100%  
-	    New File  		   56467	S:\5 Financial and Accounting\2019\Inventory 2019 Final.xlsx100%  
-	    New File  		   31558	S:\5 Financial and Accounting\2019\Inventory 2019 Material List.xls100%  
-	    New File  		   68132	S:\5 Financial and Accounting\2019\Inventory 2019.xlsx100%  
-	    New File  		  992786	S:\5 Financial and Accounting\2019\IRS Cal Tax Retrun Authorization forms.pdf100%  
-	    New File  		   13049	S:\5 Financial and Accounting\2019\Ken Open Items ESSCO 6-30-2019.xlsx100%  
-	    New File  		   43863	S:\5 Financial and Accounting\2019\NEBF Status Report 2019.pdf100%  
-	    New File  		  633017	S:\5 Financial and Accounting\2019\NY Life Statement 2019.pdf100%  
-	    New File  		  623486	S:\5 Financial and Accounting\2019\NYL IRIS 2019.pdf100%  
-	    New File  		  490317	S:\5 Financial and Accounting\2019\NYL SHL Closing Statement.pdf100%  
-	    New File  		   52867	S:\5 Financial and Accounting\2019\Overhead Burden 2019.pdf100%  
-	    New File  		  118784	S:\5 Financial and Accounting\2019\Pension Journal.xls100%  
-	    New File  		  216317	S:\5 Financial and Accounting\2019\Pension Trust Annual Notice 2019.pdf100%  
-	    New File  		  120428	S:\5 Financial and Accounting\2019\RepresentationLtr ESSCO 6-30-19.pdf100%  
-	    New File  		  123959	S:\5 Financial and Accounting\2019\Sean Financial Statement 2019.pdf100%  
-	    New File  		   16580	S:\5 Financial and Accounting\2019\Sean's union contributions.xlsx100%  
-	    New File  		   91347	S:\5 Financial and Accounting\2019\TL Personal Financial Template Jan 2020.pdf100%  
-	    New File  		  628453	S:\5 Financial and Accounting\2019\Trade in 2005 F150.pdf100%  
-	    New File  		  483984	S:\5 Financial and Accounting\2019\Write offs 2019.pdf100%  
-	    New File  		  938214	S:\1 Jobs\Solar Equipment\Ak stamp MidClampLugInstall_NEW.pdf  0%   99%  100%  
-	    New File  		 3605584	S:\1 Jobs\Solar Equipment\CPS Monitoring Installation Manual.pdf100%  
-	    New File  		  421021	S:\1 Jobs\Solar Equipment\CS-Datasheet-HiKu6(All-Black)_CS6R-MS-HL_v1.2C25_F23_P1_NA (1) (1).pdf100%  
-	    New File  		 7287339	S:\1 Jobs\Solar Equipment\module frame2.dwg100%  
-	    New File  		 1594268	S:\1 Jobs\Solar Equipment\Qcells_Data_sheet_Q.PEAK_DUO_XL-G11-BFG_series_575-590_2022-05_Rev01_NA_pre-1.pdf100%  
-	    New File  		     190	S:\1 Jobs\Solar Equipment\Solar Inventory RSD.url100%  
-	    New File  		   11817	S:\1 Jobs\Solar Equipment\Solar Module Inventory List_see Google Doc.xlsx100%  
-	    New File  		   11997	S:\1 Jobs\TO BE Archived Dec 1, 2025\Green Energy Survey Final Version ESSCO.xlsx100%  
-	    New File  		  215040	S:\1 Jobs\TO BE Archived Dec 1, 2025\INVOICE LOG 2.xls 99%  100%  
-	    New File  		  107744	S:\1 Jobs\TO BE Archived Dec 1, 2025\OLD... Move to Google Docs Supervision Report.xlsx100%  
-	    New File  		   10005	S:\1 Jobs\TO BE Archived Dec 1, 2025\Projected Billing to End of Fiscal Year 2023.xlsx100%  
-	    New File  		   14244	S:\1 Jobs\TO BE Archived Dec 1, 2025\Projected Billings through 6.30.23 (Matt).xlsx100%  
-	    New File  		   10013	S:\1 Jobs\TO BE Archived Dec 1, 2025\Underground Conduit Survey.xlsx100%  
-	    New File  		  599483	S:\1 Jobs\TO BE Archived Dec 1, 2025\w9_essco_2024.pdf100%  
-	    New File  		   36819	S:\1 Jobs\TO BE Archived Dec 1, 2025\[Untitled]_2023092512383700.pdf100%  
-	    New File  		   32871	S:\5 Financial and Accounting\2020\Backlog WIP 01 15 20.pdf100%  
-	    New File  		   11084	S:\5 Financial and Accounting\2020\Backlog WIP 01 15 20.xlsx100%  
-	    New File  		  265522	S:\5 Financial and Accounting\2020\ESSCO California Tax Return 6-30-2020.pdf100%  
-	    New File  		  265517	S:\5 Financial and Accounting\2020\ESSCO California Tax Return 6-30-2020_no SS#.pdf100%  
-	    New File  		  528827	S:\5 Financial and Accounting\2020\ESSCO Federal Tax Return 6-30-2020.pdf100%  
-	    New File  		  411739	S:\5 Financial and Accounting\2020\ESSCO Federal Tax Return 6-30-2020_no SS#.pdf100%  
-	    New File  		   74034	S:\5 Financial and Accounting\2020\ESSCO Financial Statements with Contract Schedules 6-30-2020.pdf100%  
-	    New File  		  159782	S:\5 Financial and Accounting\2020\ESSCO Financial Statements without Schedules 6-30-2020.pdf100%  
-	    New File  		 4532265	S:\5 Financial and Accounting\2020\ESSCO Fixed Asset Register 6-30-20.PDF100%  
-	    New File  		  206831	S:\5 Financial and Accounting\2020\ESSCO Representation Letter 1 13 21.pdf100%  
-	    New File  		  198656	S:\5 Financial and Accounting\2020\Info to ABB for Credit Line.doc100%  
-	    New File  		   27027	S:\5 Financial and Accounting\2020\Inventory 2020 Extension.xls100%  
-	    New File  		   65153	S:\5 Financial and Accounting\2020\Inventory 2020.xlsx100%  
-	    New File  		   11998	S:\5 Financial and Accounting\2020\Inventoty 2020 Extension.csv100%  
-	    New File  		   58806	S:\5 Financial and Accounting\2020\Inventoty 2020 Extension.xls100%  
-	    New File  		   11730	S:\5 Financial and Accounting\2020\Job  AR Questions.xlsx100%  
-	    New File  		   16624	S:\5 Financial and Accounting\2020\Sean's union contributions.xlsx100%  
-	    New File  		   18627	S:\5 Financial and Accounting\2020\WIP Job Estimates.xlsx100%  
-	    New File  		  347355	S:\5 Financial and Accounting\2021\ABB Line of Credit 2021.pdf100%  
-	    New File  		  621698	S:\5 Financial and Accounting\2021\Eng. LTR ESSCO 6-30-20.pdf100%  
-	    New File  		  169560	S:\5 Financial and Accounting\2021\ESSCO DOH receipt_.pdf100%  
-	    New File  		 1291527	S:\5 Financial and Accounting\2021\ESSCO Federal Tax Return 06-30-2021.pdf100%  
-	    New File  		  196328	S:\5 Financial and Accounting\2021\ESSCO Financial Statements 6-30-2021.pdf100%  
-	    New File  		  234548	S:\5 Financial and Accounting\2021\ESSCO Financial Statements with Contract Schedules 6-30-2021.pdf 99%  100%  
-	    New File  		  951334	S:\5 Financial and Accounting\2021\ESSCO Financial Statements with Contract Schedules 6-30-2021_DRAFT.pdf100%  
-	    New File  		   54514	S:\5 Financial and Accounting\2021\ESSCO Financials 12 31 20.pdf100%  
-	    New File  		  644768	S:\5 Financial and Accounting\2021\Inventory 2021.pdf100%  
-	    New File  		   66438	S:\5 Financial and Accounting\2021\Inventory 2021.xlsx100%  
-	    New File  		   44728	S:\5 Financial and Accounting\2021\Line of Credit Change in Terms 4.13.21.pdf100%  
-	    New File  		  244787	S:\5 Financial and Accounting\2021\NEBF Annual Funding Notice 2020.pdf100%  
-	    New File  		   63107	S:\5 Financial and Accounting\2021\New York Life Policy Statement Iris 2021.pdf100%  
-	    New File  		  623147	S:\5 Financial and Accounting\2021\NY Life Iris 01 04 21.pdf100%  
-	    New File  		  599033	S:\5 Financial and Accounting\2022\2020 Tax Return First Page.pdf100%  
-	    New File  		  218879	S:\5 Financial and Accounting\2021\Pension Funding Notice 10.18.21.pdf100%  
-	    New File  		  224257	S:\5 Financial and Accounting\2021\So Cal Trust Funds Funding Notice 07 2020.pdf100%  
-	    New File  		  119595	S:\5 Financial and Accounting\2023\2023 Fringe Workshheet ESSCO_Sean.pdf100%  
-	    New File  		  228652	S:\5 Financial and Accounting\2023\ESSCO Financial Statements 6-30-2023.pdf100%  
-	    New File  		   63229	S:\5 Financial and Accounting\2023\ESSCO SDI Fix Letter.docx100%  
-	    New File  		   39653	S:\5 Financial and Accounting\2023\Fixed Assets 2023.xlsx100%  
-	    New File  		   52737	S:\5 Financial and Accounting\2023\Paycheck to print.pdf100%  
-	    New File  		  151275	S:\5 Financial and Accounting\2023\Q2023 Q4 Use Tax.pdf100%  
-	    New File  		   59729	S:\5 Financial and Accounting\2022\2022 CLI Tax Deductible Receipt (ESSCO).pdf 99%  100%  
-	    New File  		  234949	S:\5 Financial and Accounting\2022\Annual  Pension Plan Funding Notice 2022.pdf100%  
-	    New File  		  227009	S:\5 Financial and Accounting\2022\Dec 22 Income Statement.PDF100%  
-	    New File  		  190549	S:\5 Financial and Accounting\2022\Dec 31 2022 ESSCO Balance Sheet.pdf100%  
-	    New File  		  214006	S:\5 Financial and Accounting\2022\Dec 31 2022 ESSCO Income Statement.pdf100%  
-	    New File  		 5814688	S:\5 Financial and Accounting\2022\ESSCO ADJUSTING JE  6-30-2022.pdf100%  
-	    New File  		  169607	S:\5 Financial and Accounting\2022\ESSCO Financial Statements 6-30-2022.pdf100%  
-	    New File  		  346863	S:\5 Financial and Accounting\2022\ESSCO Financial Statements with Contract Schedules 6-30-2022.pdf100%  
-	    New File  		  191362	S:\5 Financial and Accounting\2022\ESSCO INTERNAL  BALANCE SHEET 06 30 22.pdf100%  
-	    New File  		  232970	S:\5 Financial and Accounting\2022\ESSCO INTERNAL INCOME STATEMENT 06 30 22.pdf100%  
-	    New File  		 1295485	S:\5 Financial and Accounting\2022\Federal Tax Return 06.30.21.pdf100%  
-	    New File  		   28810	S:\5 Financial and Accounting\2022\FS_Jobs under $150K and Misc Jobs.pdf 99%  100%  
-	    New File  		   29777	S:\5 Financial and Accounting\2022\Inventory 2022 Extension.xls100%  
-	    New File  		   68071	S:\5 Financial and Accounting\2022\Inventory 2022.xlsx100%  
-	    New File  		  127090	S:\5 Financial and Accounting\2022\Inventory 2023.xlsx100%  
-	    New File  		  228591	S:\5 Financial and Accounting\2022\Jan 22 Income Statement.PDF100%  
-	    New File  		  495199	S:\5 Financial and Accounting\2022\Pension Improvement Plan 2022.pdf100%  
-	    New File  		   13214	S:\5 Financial and Accounting\2024\10 09 24 WIP Report.xlsx100%  
-	    New File  		  419394	S:\5 Financial and Accounting\2024\ESSCO Financial Statements 6-30-2024.pdf100%  
-	    New File  		  241389	S:\5 Financial and Accounting\2025\2025 Mod Rate.pdf100%  
-	    New File  		   53960	S:\5 Financial and Accounting\Accounting\CC ltr.pdf100%  
-	    New File  		  695775	S:\5 Financial and Accounting\Accounting\Chart of Accounts.pdf100%  
-	    New File  		 3859944	S:\5 Financial and Accounting\Accounting\DETAIL COST REPORT FOR KIN #40.PDF100%  
-	    New File  		   24131	S:\5 Financial and Accounting\Accounting\Union Benefit Recon (1).xlsx100%  
-	    New File  		   61977	S:\5 Financial and Accounting\Accounting\Vehicle Commuting Only Policy Statement.docx100%  
-	    New File  		  426543	S:\5 Financial and Accounting\Audits\Jose Aguilar Payroll Records.PDF100%  
-	    New File  		   92846	S:\5 Financial and Accounting\Banking\ABB Annual Remote capture customer risk assessment.pdf100%  
-	    New File  		  263497	S:\5 Financial and Accounting\Banking\ABB Credit Line 3 12 20.pdf 99%  100%  
-	    New File  		   15140	S:\5 Financial and Accounting\Banking\ABB Wiring Instructions.pdf100%  
-	    New File  		 1734504	S:\5 Financial and Accounting\Banking\Credit Line 2016.pdf100%  
-	    New File  		 1734452	S:\5 Financial and Accounting\Banking\Credit Line 2016a.pdf100%  
-	    New File  		  430870	S:\5 Financial and Accounting\Banking\Credit Line 2017.pdf100%  
-	    New File  		  152683	S:\5 Financial and Accounting\Banking\Credit Line 2021.pdf100%  
-	    New File  		  990914	S:\5 Financial and Accounting\Banking\Credit Line 2022.pdf100%  
-	    New File  		 3601178	S:\5 Financial and Accounting\Banking\Credit Line Agreement 01 14.pdf100%  
-	    New File  		   61598	S:\5 Financial and Accounting\Banking\Domestic Outgoing Wire Form - rev 02 2016 (2).pdf100%  
-	    New File  		  501546	S:\5 Financial and Accounting\Banking\Electric Service & Supply Co of Pasadena- Executed PPP Note.pdf100%  
-	    New File  		  177701	S:\5 Financial and Accounting\Banking\Electric Service & Supply Review 2018 signed.pdf100%  
-	    New File  		  599320	S:\5 Financial and Accounting\Banking\Electric Service & Supply Review 2018.pdf100%  
-	    New File  		  448480	S:\5 Financial and Accounting\Banking\Incoming ACH-WIRE info.pdf100%  
-	    New File  		     386	S:\5 Financial and Accounting\Banking\MaxDesk.ini100%  
-	    New File  		  511767	S:\5 Financial and Accounting\Banking\PPThumbs.ptn100%  
-	    New File  		   46608	S:\5 Financial and Accounting\Banking\San Julian Battery Report Field Notes.pdf100%  
-	    New File  		  261180	S:\5 Financial and Accounting\Banking\smaller pages.pdf100%  
-	    New File  		   33929	S:\5 Financial and Accounting\Certs of Insurance\United Riggers COI thru 6-1-26.pdf100%  
-	    New File  		  139538	S:\5 Financial and Accounting\Foundation Software Startup\1242 JBI.PRN100%  
-	    New File  		   16716	S:\5 Financial and Accounting\Foundation Software Startup\1242 job cost from structure.xlsx100%  
-	    New File  		   95832	S:\5 Financial and Accounting\Foundation Software Startup\Beginning Bank Rec Instructions.pdf100%  
-	    New File  		  124253	S:\5 Financial and Accounting\Foundation Software Startup\Beginning Trial Balance Instructions.pdf100%  
-	    New File  		  245074	S:\5 Financial and Accounting\Foundation Software Startup\Chart of Accounts 101.pdf100%  
-	    New File  		   19486	S:\5 Financial and Accounting\Foundation Software Startup\Contact List from Structure.xlsx100%  
-	    New File  		   12987	S:\5 Financial and Accounting\Foundation Software Startup\Cost Code - Template Ph1 Done.xlsx100%  
-	    New File  		   22615	S:\5 Financial and Accounting\Foundation Software Startup\Customer - Template WIP.xlsx100%  
-	    New File  		 1462505	S:\5 Financial and Accounting\Foundation Software Startup\GCA - CHART OF ACCOUNTS.PDF100%  
-	    New File  		   20657	S:\5 Financial and Accounting\Foundation Software Startup\GL Account - Template _NO DIVISIONS DONE.xlsx100%  
-	    New File  		   23758	S:\5 Financial and Accounting\Foundation Software Startup\GL Account - Template _NO DIVISIONS WIP.xlsx100%  
-	    New File  		  154585	S:\5 Financial and Accounting\Foundation Software Startup\gl issue.jpg100%  
-	    New File  		   12678	S:\5 Financial and Accounting\Foundation Software Startup\Going Live Foundation.docx100%  
-	    New File  		 9409375	S:\5 Financial and Accounting\Foundation Software Startup\implementation-guide-to-foundation-software.pdf100%  
-	    New File  		  689537	S:\5 Financial and Accounting\Foundation Software Startup\inventory list.jpg100%  
-	    New File  		   13447	S:\5 Financial and Accounting\Foundation Software Startup\Job - Template.xlsx100%  
-	    New File  		     354	S:\5 Financial and Accounting\Foundation Software Startup\Monthly Tie Out.fqc100%  
-	    New File  		   18677	S:\5 Financial and Accounting\Foundation Software Startup\Payroll Maintenance.docx100%  
-	    New File  		  165775	S:\5 Financial and Accounting\Foundation Software Startup\Sample Chart of Accounts.pdf100%  
-	    New File  		   16073	S:\5 Financial and Accounting\Foundation Software Startup\SAMPLE_GL Account Template.xlsx100%  
-	    New File  		   12171	S:\5 Financial and Accounting\Foundation Software Startup\Statement Categories Table.xlsx100%  
-	    New File  		   18946	S:\5 Financial and Accounting\Foundation Software Startup\Strcuture AP Aging 42623.csv100%  
-	    New File  		   36864	S:\5 Financial and Accounting\Foundation Software Startup\Thumbs.db100%  
-	    New File  		  157879	S:\5 Financial and Accounting\Foundation Software Startup\to repost payment for voided check.jpg100%  
-	    New File  		   40690	S:\5 Financial and Accounting\Foundation Software Startup\Vender List from Structure.xlsx100%  
-	    New File  		   51066	S:\5 Financial and Accounting\Foundation Software Startup\Vendor - Template_PASSWORD_PROTECT DONE.xlsx100%  
-	    New File  		  131960	S:\5 Financial and Accounting\Foundation Software Startup\VMR2.xml100%  
-	    New File  		   12286	S:\5 Financial and Accounting\Payroll\California Law regarding payroll information.docx100%  
-	    New File  		  284472	S:\5 Financial and Accounting\Payroll\DE9 blank form.pdf 99%  100%  
-	    New File  		  120910	S:\5 Financial and Accounting\Profit Sharing\103463661_1_Reprint_8041125 ERISA BOND.pdf100%  
-	    New File  		 2023471	S:\5 Financial and Accounting\Profit Sharing\1993.11.19 PS documents.pdf100%  
-	    New File  		   27136	S:\5 Financial and Accounting\Profit Sharing\2011 DistributionsFormat.xls100%  
-	    New File  		  161273	S:\5 Financial and Accounting\Profit Sharing\Beneficiary Designation Form Iris.pdf100%  
-	    New File  		  161016	S:\5 Financial and Accounting\Profit Sharing\Beneficiary Designation Form SHL.pdf100%  
-	    New File  		   52188	S:\5 Financial and Accounting\Profit Sharing\Beneficiary Designation Form.pdf100%  
-	    New File  		   93539	S:\5 Financial and Accounting\Profit Sharing\Diana Lazarian 11 09 11.pdf100%  
-	    New File  		   24576	S:\5 Financial and Accounting\Profit Sharing\DirectRolloverInstructions2010.doc100%  
-	    New File  		   70059	S:\5 Financial and Accounting\Profit Sharing\DirectRolloverInstructions2010.pdf100%  
-	    New File  		  190359	S:\5 Financial and Accounting\Profit Sharing\DISTRIBELECTION Iris.pdf100%  
-	    New File  		  190358	S:\5 Financial and Accounting\Profit Sharing\DISTRIBELECTION SHL.pdf100%  
-	    New File  		   34816	S:\5 Financial and Accounting\Profit Sharing\DISTRIBELECTION.doc100%  
-	    New File  		   89018	S:\5 Financial and Accounting\Profit Sharing\DISTRIBELECTION.pdf100%  
-	    New File  		   26112	S:\5 Financial and Accounting\Profit Sharing\DistributionsFormat.xls100%  
-	    New File  		  189249	S:\5 Financial and Accounting\Profit Sharing\Executed Distribution Election Forms.pdf100%  
-	    New File  		  602199	S:\5 Financial and Accounting\Profit Sharing\IRA Adoption Agreement Traditional Iris.pdf100%  
-	    New File  		  601577	S:\5 Financial and Accounting\Profit Sharing\IRA Adoption Agreement Traditional SHL.pdf100%  
-	    New File  		  601577	S:\5 Financial and Accounting\Profit Sharing\IRA Adoption Agreement Traditional.pdf100%  
-	    New File  		     983	S:\5 Financial and Accounting\Profit Sharing\MaxDesk.ini100%  
-	    New File  		 1106942	S:\5 Financial and Accounting\Profit Sharing\MS Designation of Beneficiary SH & IL.pdf100%  
-	    New File  		  258513	S:\5 Financial and Accounting\Profit Sharing\New Account Questionnaire.pdf100%  
-	    New File  		 1225917	S:\5 Financial and Accounting\Profit Sharing\PPThumbs.ptn100%  
-	    New File  		   35337	S:\5 Financial and Accounting\Profit Sharing\Special Tax Notice 2011.pdf100%  
-	    New File  		  979992	S:\5 Financial and Accounting\Profit Sharing\Statement 12 31 12.pdf100%  
-	    New File  		  217600	S:\5 Financial and Accounting\Taxes\EDD State Payroll Taxes 2021.xls 99%  100%  
-	    New File  		  212480	S:\5 Financial and Accounting\Taxes\EDD State Payroll Taxes 2022.xls100%  
-	    New File  		  110536	S:\5 Financial and Accounting\Taxes\EDD State Payroll Taxes 2023 old.xlsx100%  
-	    New File  		  115037	S:\5 Financial and Accounting\Taxes\EDD State Payroll Taxes 2023.xlsx100%  
-	    New File  		  101226	S:\5 Financial and Accounting\Taxes\EDD State Payroll Taxes 2024.xlsx100%  
-	    New File  		   96487	S:\5 Financial and Accounting\Taxes\EDD State Payroll Taxes 2025.xlsx100%  
-	    New File  		  164864	S:\5 Financial and Accounting\Taxes\EFTPS Federal Payroll taxes 2021.xls100%  
-	    New File  		  207360	S:\5 Financial and Accounting\Taxes\EFTPS Federal Payroll taxes 2022.xls100%  
-	    New File  		   61785	S:\5 Financial and Accounting\Taxes\EFTPS Federal Payroll taxes 2023 old.xlsx100%  
-	    New File  		   62671	S:\5 Financial and Accounting\Taxes\EFTPS Federal Payroll taxes 2023.xlsx100%  
-	    New File  		   62759	S:\5 Financial and Accounting\Taxes\EFTPS Federal Payroll taxes 2024.xlsx100%  
-	    New File  		   57969	S:\5 Financial and Accounting\Taxes\EFTPS Federal Payroll taxes 2025.xlsx100%  
-	    New File  		  297632	S:\5 Financial and Accounting\W9\Ariel Babikian W-9.pdf100%  
-	    New File  		  451254	S:\5 Financial and Accounting\W9\Converse Consultants W9.pdf100%  
-	    New File  		   64825	S:\5 Financial and Accounting\W9\EnergyIQ W9 2021.pdf100%  
-	    New File  		  637669	S:\5 Financial and Accounting\W9\EnergyIQ W9 2022.pdf100%  
-	    New File  		  281619	S:\5 Financial and Accounting\W9\ESSCO w9 2018 Rev.pdf100%  
-	    New File  		  674790	S:\5 Financial and Accounting\W9\ESSCO W9 2025 backup.pdf100%  
-	    New File  		  570533	S:\5 Financial and Accounting\W9\ESSCO W9 2025.pdf100%  
-	    New File  		  521132	S:\5 Financial and Accounting\W9\GET STRUC W9 2023.pdf100%  
-	    New File  		 2649744	S:\5 Financial and Accounting\W9\Halco W9 Signed 1-25-21.pdf100%  
-	    New File  		  819230	S:\5 Financial and Accounting\W9\Mike Plumbing w9.pdf100%  
-	    New File  		   55103	S:\5 Financial and Accounting\W9\PZSE inc W9.pdf100%  
-	    New File  		   77312	S:\5 Financial and Accounting\W9\Thumbs.db100%  
-	    New File  		   52800	S:\5 Financial and Accounting\W9\Ultra Engineering W9.pdf100%  
-	    New File  		   22528	S:\3 Operations\Publications\Thumbs.db100%  
-	    New File  		  766998	S:\3 Operations\Publications\Tool & Equipment Rental Schedule 2010 - 2011.pdf 99%  100%  
-	    New File  		   45568	S:\3 Operations\Sales and Marketing\aaa ESSCO Letterhead2020.doc100%  
-	    New File  		25220573	S:\3 Operations\Sales and Marketing\ESSCO_2019 Flyer.pdf100%  
-	    New File  		  478194	S:\3 Operations\Sales and Marketing\GreekTheater.pdf100%  
-	    New File  		  335137	S:\3 Operations\Sales and Marketing\greenquest_11.2023.pdf100%  
-	    New File  		   16450	S:\3 Operations\Sales and Marketing\Job Listings for Marketing.xlsx100%  
-	    New File  		   42612	S:\3 Operations\Sales and Marketing\METRO _ ENERGY SUSTAINABILITY POLICY.pdf100%  
-	    New File  		   16419	S:\3 Operations\Sales and Marketing\Smart Home Capabilities.docx100%  
-	    New File  		   12650	S:\3 Operations\Sales and Marketing\Solar Sales Operations.docx100%  
-	    New File  		 4521925	S:\3 Operations\Products and Equipment Vendors\2018 ProSolar Price List.pdf100%  
-	    New File  		  100572	S:\3 Operations\Products and Equipment Vendors\2x2 and 2x4 LED troffers.pdf100%  
-	    New File  		   80967	S:\3 Operations\Products and Equipment Vendors\aaa CSI_SolarDisclosureDoc.pdf100%  
-	    New File  		   95280	S:\3 Operations\Products and Equipment Vendors\Basic labor rates for fixtures.xlsx100%  
-	    New File  		  693447	S:\3 Operations\Products and Equipment Vendors\Cooper Cut-Sheet - SkyRidge-24SR-LD1[1].pdf100%  
-	    New File  		 1117045	S:\3 Operations\Products and Equipment Vendors\EP-IndoorCI.pdf100%  
-	    New File  		 3871320	S:\3 Operations\Products and Equipment Vendors\EPX - L.A. County Presentation.pdf100%  
-	    New File  		   56786	S:\3 Operations\Products and Equipment Vendors\ESL credit application filled out.pdf100%  
-	    New File  		 9412925	S:\3 Operations\Products and Equipment Vendors\ESSCO_PV_Flier.pdf100%  
-	    New File  		  123752	S:\3 Operations\Products and Equipment Vendors\GL200R_spec_sheet.pdf100%  
-	    New File  		 5234552	S:\3 Operations\Products and Equipment Vendors\Global Solar PowerFLEX+  BAPV Data Sheet.pdf 99%  100%  
-	    New File  		  312668	S:\3 Operations\Products and Equipment Vendors\OSHPD Application of prefaabricated components and systems.pdf100%  
-	    New File  		  155506	S:\3 Operations\Products and Equipment Vendors\PV SunRunner-Cable-Clip-4-Wires.pdf100%  
-	    New File  		     190	S:\3 Operations\Products and Equipment Vendors\Solar Inventory.url100%  
-	    New File  		  662053	S:\3 Operations\Products and Equipment Vendors\solar_pv_microinverter_standard_plan_simplified_2017_la_electrical_code.pdf100%  
-	    New File  		   22542	S:\3 Operations\Products and Equipment Vendors\Spreadsheet of pricing.xlsx100%  
-	    New File  		   20480	S:\3 Operations\Products and Equipment Vendors\Thumbs.db100%  
-	    New File  		   26972	S:\3 Operations\Products and Equipment Vendors\Typical Classrooms.xlsx100%  
-	    New File  		  368128	S:\3 Operations\Products and Equipment Vendors\ValueCalculator_v1_0.xls100%  
-	    Older     		1800816928	S:\3 Operations\Software Installation Files\BbRevu20.3.30.exe  0%    1%    2%    3%    4%    5%    6%    7%    8%    9%   10%   11%   12%  

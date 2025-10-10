@@ -1,1 +1,5 @@
-print('Run as: python -m catalog.scan or python -m catalog.export')
+from .cli import main
+
+
+if __name__ == "__main__":
+	raise SystemExit(main())

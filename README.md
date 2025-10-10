@@ -6,16 +6,16 @@ Quick start:
 2) Copy `config/catalog.yaml.example` to `config/catalog.yaml` and set your roots.
 3) Run a small test:
    ```powershell
-   python -m catalog.scan --config config/catalog.yaml --max-workers 4
+   python -m catalog scan --config config/catalog.yaml --max-workers 4
    ```
 4) Export Parquet:
    ```powershell
-   python -m catalog.export --db data/projects.db --out data/parquet
+   python -m catalog export --config config/catalog.yaml --out data/parquet
    ```
 
 5) Detect duplicates (fast path):
    ```powershell
-   python -m catalog.dedupe --config config/catalog.yaml --max-workers 16
+   python -m catalog dedupe --config config/catalog.yaml --max-workers 16
    ```
 
    Duplicate detection automatically skips any files that no longer exist in the
@@ -38,12 +38,32 @@ Quick start:
    detection:
 
    ```powershell
-   python -m catalog.dedupe --config config/catalog.yaml --delete-duplicates --dry-run
+   python -m catalog dedupe --config config/catalog.yaml --delete-duplicates --dry-run
    ```
 
    Review the preview output and rerun without `--dry-run` to actually delete the
    duplicate files. Add `--keep-newest` to keep the most recently modified file in
    each group, or `--no-confirm` to skip the confirmation prompt once you're ready.
+
+## Unified CLI
+
+All core operations now flow through a single entry point:
+
+```powershell
+python -m catalog --help
+```
+
+Available subcommands:
+
+- `scan` – enumerate filesystem roots into the SQLite catalog.
+- `hash` – compute BLAKE3 digests for cataloged files.
+- `dedupe` – detect duplicates and optionally prune files or catalog rows.
+- `export` – write Parquet extracts for downstream analytics.
+- `gui` – launch the Qt desktop explorer (requires PySide6).
+
+Every subcommand accepts `--config config/catalog.yaml` to load shared settings.
+Legacy scripts such as `run_hash_dedupe.py` now forward to these commands, so
+existing automation keeps working while the repository stays organized.
 
 ## Development
 

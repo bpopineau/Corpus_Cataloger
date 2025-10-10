@@ -1,13 +1,16 @@
 from __future__ import annotations
 import argparse
 from pathlib import Path
+from typing import Iterable, Optional
+
 import duckdb
 
-def main():
+
+def main(argv: Optional[Iterable[str]] = None) -> None:
     ap = argparse.ArgumentParser(description="Export SQLite tables to Parquet via DuckDB")
     ap.add_argument("--db", required=True)
     ap.add_argument("--out", required=True)
-    args = ap.parse_args()
+    args = ap.parse_args(list(argv) if argv is not None else None)
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)

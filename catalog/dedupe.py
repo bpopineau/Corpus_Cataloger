@@ -7,7 +7,7 @@ Duplicate detection module using two-stage hashing:
 from __future__ import annotations
 import argparse, signal, sys
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from datetime import datetime
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1263,7 +1263,7 @@ def prune_hash_duplicates(
         con.close()
 
 
-def main():
+def main(argv: Optional[Iterable[str]] = None) -> None:
     ap = argparse.ArgumentParser(description="Corpus Cataloger - Duplicate Detection")
     ap.add_argument("--config", required=True, help="Path to config file")
     ap.add_argument("--max-workers", type=int, default=None, help="Number of worker threads")
@@ -1285,7 +1285,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="Preview duplicate deletions without touching disk or database")
     ap.add_argument("--keep-newest", action="store_true", help="Keep the newest file in each hash group (default keeps oldest)")
     ap.add_argument("--no-confirm", action="store_true", help="Skip confirmation prompt before deleting duplicates")
-    args = ap.parse_args()
+    args = ap.parse_args(list(argv) if argv is not None else None)
     
     cfg = load_config(Path(args.config))
     
@@ -1424,7 +1424,7 @@ def main():
             print("\n" + "=" * 70)
             print("HASH DUPLICATE PRUNE (PREVIEW)")
             print("=" * 70)
-            preview = prune_hash_duplicates(
+            preview: Dict[str, Any] = prune_hash_duplicates(
                 cfg,
                 include_prefixes=include_prefixes,
                 exclude_prefixes=exclude_prefixes,
@@ -1462,7 +1462,7 @@ def main():
                         print("Duplicate deletion cancelled. Rerun with --dry-run to preview or with --no-confirm to skip prompts.")
                     else:
                         print("\nExecuting duplicate removal...")
-                        result = prune_hash_duplicates(
+                        result: Dict[str, Any] = prune_hash_duplicates(
                             cfg,
                             include_prefixes=include_prefixes,
                             exclude_prefixes=exclude_prefixes,
