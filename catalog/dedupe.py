@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from datetime import datetime
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .config import CatalogConfig, load_config
+from .config import CatalogConfig
 from .db import connect, migrate
 from .util import quick_hash, sha256_file
 try:
@@ -1055,17 +1055,6 @@ def prune_hash_duplicates(
         except Exception:
             pass
 
-    def parse_ts(value: Optional[str]) -> float:
-        if not value:
-            return 0.0
-        try:
-            cleaned = value
-            if cleaned.endswith("Z"):
-                cleaned = cleaned[:-1] + "+00:00"
-            return datetime.fromisoformat(cleaned).timestamp()
-        except Exception:
-            return 0.0
-
     db_path = Path(cfg.db.path)
     if not db_path.exists():
         emit_log(f"[HASH-PRUNE] Database not found: {db_path}")
@@ -1119,6 +1108,123 @@ def prune_hash_duplicates(
             return stats
 
         stats["hash_groups"] = len(duplicate_hashes)
+
+        def _parse_mtime(value: Optional[str]) -> float:
+            if not value:
+                return 0.0
+            try:
+                cleaned = value
+                if cleaned.endswith("Z"):
+                    cleaned = cleaned[:-1] + "+00:00"
+                return datetime.fromisoformat(cleaned).timestamp()
+            except Exception:
+                return 0.0
+
+        for sha256, count, size_bytes in duplicate_hashes:
+            group_sql = (
+                """
+                SELECT file_id, path_abs, size_bytes, mtime_utc
+                FROM files f
+                WHERE sha256 = ?
+                  AND state NOT IN ('error', 'missing')
+                """
+                + filter_sql
+                + " ORDER BY mtime_utc"
+            )
+            cur.execute(group_sql, (sha256, *filter_params))
+            members_raw = cur.fetchall()
+            if len(members_raw) <= 1:
+                continue
+
+            members: List[Dict[str, Any]] = []
+            for file_id, path_abs, size_val, mtime in members_raw:
+                members.append(
+                    {
+                        "file_id": file_id,
+                        "path": path_abs,
+                        "size_bytes": int(size_val or 0),
+                        "mtime": mtime,
+                    }
+                )
+
+            def _sort_key(member: Dict[str, Any]) -> Tuple[float, str, int]:
+                ts = _parse_mtime(member.get("mtime"))
+                key_ts = -ts if keep_strategy == "newest" else ts
+                return (
+                    key_ts,
+                    str(member.get("path", "")).lower(),
+                    int(member.get("file_id") or 0),
+                )
+
+            sorted_members = sorted(members, key=_sort_key)
+            keeper = sorted_members[0]
+            duplicates = sorted_members[1:]
+            if not duplicates:
+                continue
+
+            potential_bytes = sum(int(dup.get("size_bytes") or 0) for dup in duplicates)
+            stats["groups_modified"] += 1
+            stats["files_considered"] += len(duplicates)
+            stats["potential_bytes_reclaimed"] += potential_bytes
+
+            stats["groups"].append(
+                {
+                    "sha256": sha256,
+                    "count": count,
+                    "size_bytes": size_bytes,
+                    "keeper": keeper,
+                    "duplicates": duplicates,
+                }
+            )
+
+            if dry_run:
+                continue
+
+            emit_log(
+                f"[HASH-PRUNE] Removing {len(duplicates)} duplicates for hash {sha256[:12]}…"
+            )
+
+            file_ids_to_delete: List[int] = []
+            for dup in duplicates:
+                path = Path(dup.get("path") or "")
+                file_id = dup.get("file_id")
+                size_val = int(dup.get("size_bytes") or 0)
+                try:
+                    if path and path.exists():
+                        try:
+                            path.unlink()
+                            stats["bytes_reclaimed"] += size_val
+                            stats["files_removed"] += 1
+                        except Exception as exc:
+                            stats["errors"].append(f"Failed to remove {path}: {exc}")
+                            continue
+                    else:
+                        stats["errors"].append(f"File missing during prune: {path}")
+                        # Even if missing on disk, still prune DB row to keep catalog clean
+                        stats["files_removed"] += 1
+                    if file_id is not None:
+                        file_ids_to_delete.append(int(file_id))
+                except Exception as exc:  # Guard against unexpected issues
+                    stats["errors"].append(f"Error processing duplicate {path}: {exc}")
+
+            if file_ids_to_delete:
+                placeholders = ",".join("?" for _ in file_ids_to_delete)
+                cur.execute(
+                    f"DELETE FROM files WHERE file_id IN ({placeholders})",
+                    file_ids_to_delete,
+                )
+                stats["db_rows_removed"] += len(file_ids_to_delete)
+
+        if not dry_run:
+            con.commit()
+
+        return stats
+
+    finally:
+        try:
+            con.close()
+        except Exception:
+            pass
 
 
 def main(argv: Optional[Iterable[str]] = None) -> None:
