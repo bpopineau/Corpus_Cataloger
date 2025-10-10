@@ -447,10 +447,11 @@ def detect_duplicates(
                 f"[STAGE 1] Complete: {stats['quick_hash_count']:,} files quick-hashed"
             )
 
-        # Stage 2: SHA256 for potential duplicates
+        # Stage 2: BLAKE3/SHA256 for potential duplicates
         if enable_sha256:
-            emit_log("[STAGE 2] SHA256 verification")
-            emit_progress("sha256", 0, 0, "Finding potential duplicates...")
+            hash_name = "BLAKE3" if (use_blake3 and HAS_BLAKE3) else "SHA256"
+            emit_log(f"[STAGE 2] {hash_name} verification")
+            emit_progress("hash", 0, 0, "Finding potential duplicates...")
 
             if progressive:
                 # Progressive staged sampling: head hash (h1), then tail hash (h2), then full sha for remaining collisions
@@ -714,10 +715,10 @@ def detect_duplicates(
                 cur.execute("SELECT COUNT(*) FROM sha_candidates")
                 total_sha = cur.fetchone()[0]
                 emit_log(
-                    f"[INFO] Found {total_sha:,} files needing SHA256 verification"
+                    f"[INFO] Found {total_sha:,} files needing {hash_name} verification"
                 )
                 emit_progress(
-                    "sha256", 0, total_sha, f"Verifying {total_sha:,} potential duplicates"
+                    "hash", 0, total_sha, f"Verifying {total_sha:,} potential duplicates"
                 )
 
             def _sha256_file_throttled(path: Path, chunk_size: int, bps: int) -> str:
@@ -882,7 +883,7 @@ def detect_duplicates(
                             sha_remaining = (total_sha - processed_sha) / sha_rate if sha_rate > 0 else 0
                             sha_eta_mins = sha_remaining / 60
                             emit_progress(
-                                "sha256",
+                                "hash",
                                 processed_sha,
                                 total_sha,
                                 f"Verified {processed_sha:,}/{total_sha:,} files ({sha_rate:.1f}/s, ETA {sha_eta_mins:.1f}m)",
@@ -890,12 +891,12 @@ def detect_duplicates(
                             now = time.time()
                             if now - sha_last_log_time >= 30 or processed_sha == total_sha:
                                 emit_log(
-                                    f"[SHA256] {processed_sha:,}/{total_sha:,} processed | {sha_rate:.1f} files/sec | ETA {sha_eta_mins:.1f} min"
+                                    f"[{hash_name}] {processed_sha:,}/{total_sha:,} processed | {sha_rate:.1f} files/sec | ETA {sha_eta_mins:.1f} min"
                                 )
                                 sha_last_log_time = now
 
                         if cancelled["flag"]:
-                            emit_log("[CANCEL] Stopping SHA256 (Ctrl+C)")
+                            emit_log(f"[CANCEL] Stopping {hash_name} (Ctrl+C)")
                             break
 
                 if batch_sha_updates:
@@ -905,7 +906,7 @@ def detect_duplicates(
                     )
                     con.commit()
             emit_log(
-                f"[STAGE 2] Complete: {stats['sha256_count']:,} files verified"
+                f"[STAGE 2] Complete: {stats['sha256_count']:,} files verified with {hash_name}"
             )
 
         # Stage 3: Identify duplicates
