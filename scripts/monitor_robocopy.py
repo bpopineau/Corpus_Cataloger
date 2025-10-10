@@ -130,6 +130,23 @@ def parse_human_size(text: str) -> Optional[int]:
     return int(number * multiplier.get(unit, 1))
 
 
+def parse_summary_values(payload: str) -> Optional[Dict[str, int]]:
+    tokens: list[int] = []
+    for raw in payload.split():
+        sanitized = raw.replace(",", "")
+        if sanitized.isdigit():
+            tokens.append(int(sanitized))
+        else:
+            break
+
+    if not tokens:
+        return None
+
+    tokens = tokens[: len(COLUMN_LABELS)]
+    tokens.extend([0] * (len(COLUMN_LABELS) - len(tokens)))
+    return dict(zip(COLUMN_LABELS, tokens))
+
+
 def parse_batch_metadata(batch_path: Path) -> Dict[str, Optional[int]]:
     metadata: Dict[str, Optional[int]] = {"total_files": None, "total_bytes": None}
     if not batch_path.exists():
@@ -171,49 +188,39 @@ def parse_log(log_path: Path) -> SummaryStats:
                     stats.last_start = dt
                     if stats.start_time is None and dt is not None:
                         stats.start_time = dt
-                elif line.startswith("Bytes :"):
+                elif line.startswith("Files :"):
                     payload = line.split(":", 1)[-1].strip()
-                    tokens = payload.split()
-                    if tokens and all(token.isdigit() for token in tokens[: len(COLUMN_LABELS)]):
-                        numbers = [int(token) for token in tokens[: len(COLUMN_LABELS)]]
-                        numbers.extend([0] * (len(COLUMN_LABELS) - len(numbers)))
-                        totals = dict(zip(COLUMN_LABELS, numbers))
-                        stats.bytes_total += totals["total"]
-                        stats.bytes_copied += totals["copied"]
-                        stats.bytes_skipped += totals["skipped"]
-                        stats.bytes_mismatch += totals["mismatch"]
-                        stats.bytes_failed += totals["failed"]
-                        stats.bytes_extras += totals["extras"]
-                        stats.skipped += totals["skipped"]
-                        stats.mismatch += totals["mismatch"]
-                        stats.failed += totals["failed"]
-                        stats.extras += totals["extras"]
+                    summary = parse_summary_values(payload)
+                    if summary is not None:
+                        stats.block_count += 1
+                        stats.copied += summary["copied"]
+                        stats.skipped += summary["skipped"]
+                        stats.mismatch += summary["mismatch"]
+                        stats.failed += summary["failed"]
+                        stats.extras += summary["extras"]
 
-                        if totals["copied"]:
+                        if summary["copied"]:
                             stats.last_status = "copied"
-                        elif totals["skipped"]:
+                        elif summary["skipped"]:
                             stats.last_status = "skipped"
-                        elif totals["failed"]:
+                        elif summary["failed"]:
                             stats.last_status = "failed"
-                        elif totals["mismatch"]:
+                        elif summary["mismatch"]:
                             stats.last_status = "mismatch"
-                        elif totals["extras"]:
+                        elif summary["extras"]:
                             stats.last_status = "extra"
                     elif payload:
                         stats.last_file = payload
                 elif line.startswith("Bytes :"):
                     payload = line.split(":", 1)[-1].strip()
-                    tokens = payload.split()
-                    numbers = [int(token) for token in tokens[: len(COLUMN_LABELS)] if token.isdigit()]
-                    numbers.extend([0] * (len(COLUMN_LABELS) - len(numbers)))
-                    numbers.extend([0] * (len(COLUMN_LABELS) - len(numbers)))
-                    totals = dict(zip(COLUMN_LABELS, numbers))
-                    stats.bytes_total += totals["total"]
-                    stats.bytes_copied += totals["copied"]
-                    stats.bytes_skipped += totals["skipped"]
-                    stats.bytes_mismatch += totals["mismatch"]
-                    stats.bytes_failed += totals["failed"]
-                    stats.bytes_extras += totals["extras"]
+                    summary = parse_summary_values(payload)
+                    if summary is not None:
+                        stats.bytes_total += summary["total"]
+                        stats.bytes_copied += summary["copied"]
+                        stats.bytes_skipped += summary["skipped"]
+                        stats.bytes_mismatch += summary["mismatch"]
+                        stats.bytes_failed += summary["failed"]
+                        stats.bytes_extras += summary["extras"]
     except OSError:
         return stats
 
