@@ -65,3 +65,17 @@ Notes:
 
 - Press Ctrl+C to cancel; long-running queries are interruptible.
 - For very large databases, prefer `--top` and a smaller `--samples` to keep output fast.
+
+## Monitoring throttled robocopy transfers
+
+When you generate the throttled copy script (`robocopy_throttled.bat`) you can
+watch its progress in real time. Launch the monitor from the repository root in
+another PowerShell window:
+
+```powershell
+python scripts/monitor_robocopy.py --batch robocopy_throttled.bat --log robocopy_throttled.log
+```
+
+The dashboard shows files processed, bytes copied, average throughput, and an
+estimated completion time. Use `Ctrl+C` to exit the monitor at any point; the
+robocopy batch keeps running in the original window.
