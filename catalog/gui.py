@@ -312,7 +312,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         
         self.pageSizeLabel = QtWidgets.QLabel("Items per page:")
         self.pageSizeCombo = QtWidgets.QComboBox()
-        self.pageSizeCombo.addItems(["50", "100", "250", "500", "1000"])
+        self.pageSizeCombo.addItems(["50", "100", "250", "500", "1000", "2000"])
         self.pageSizeCombo.setCurrentText("100")
         
         pagination_layout.addWidget(self.pageSizeLabel)
@@ -365,6 +365,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.tableView.setModel(self.proxyModel)
         self.tableView.setSortingEnabled(True)
         self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tableView.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView.customContextMenuRequested.connect(self._show_table_context_menu)
         header = self.tableView.horizontalHeader()
@@ -381,6 +382,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setModel(self.treeModel)
         self.treeView.setSortingEnabled(True)
+        self.treeView.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.treeView.doubleClicked.connect(self._handle_tree_double_click)
         self.treeView.header().setStretchLastSection(True)
         self.treeView.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
@@ -891,15 +893,19 @@ class FileExplorerWidget(QtWidgets.QWidget):
 
     def _show_table_context_menu(self, pos: QtCore.QPoint) -> None:
         index = self.tableView.indexAt(pos)
-        if not index.isValid():
-            return
-        source_index = self.proxyModel.mapToSource(index)
-        row = self.tableModel.raw_row(source_index.row())
-        path = row_get(row, "path_abs")
+        # Allow menu even if click is on empty area, as long as there is a selection
+        selected_indexes = self.tableView.selectionModel().selectedRows()
+        path = None
+        if index.isValid():
+            source_index = self.proxyModel.mapToSource(index)
+            row = self.tableModel.raw_row(source_index.row())
+            path = row_get(row, "path_abs")
         menu = QtWidgets.QMenu(self)
         open_action = menu.addAction("Open file")
         reveal_action = menu.addAction("Reveal in folder")
         copy_action = menu.addAction("Copy path")
+        menu.addSeparator()
+        delete_action = menu.addAction("Delete selected from database…")
         chosen = menu.exec(self.tableView.viewport().mapToGlobal(pos))
         if chosen == open_action:
             self._open_path(path)
@@ -907,6 +913,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
             self._reveal_in_explorer(path)
         elif chosen == copy_action:
             self._copy_path(path)
+        elif chosen == delete_action:
+            self._delete_selected_table_rows()
 
     def _show_tree_context_menu(self, pos: QtCore.QPoint) -> None:
         index = self.treeView.indexAt(pos)
@@ -923,6 +931,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
         if is_dir:
             open_action = menu.addAction("Open folder")
             copy_action = menu.addAction("Copy path")
+            menu.addSeparator()
+            # Deleting a directory row doesn't map to a DB row; skip delete in dir context
             chosen = menu.exec(self.treeView.viewport().mapToGlobal(pos))
             if chosen == open_action:
                 self._reveal_in_explorer(path)
@@ -932,6 +942,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
             open_action = menu.addAction("Open file")
             reveal_action = menu.addAction("Reveal in folder")
             copy_action = menu.addAction("Copy path")
+            menu.addSeparator()
+            delete_action = menu.addAction("Delete from database…")
             chosen = menu.exec(self.treeView.viewport().mapToGlobal(pos))
             if chosen == open_action:
                 self._open_path(path)
@@ -939,6 +951,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
                 self._reveal_in_explorer(path)
             elif chosen == copy_action:
                 self._copy_path(path)
+            elif chosen == delete_action:
+                self._delete_selected_tree_rows()
 
     def _open_path(self, path: Optional[str]) -> None:
         if not path:
@@ -999,6 +1013,105 @@ class FileExplorerWidget(QtWidgets.QWidget):
         if not path:
             return
         QtWidgets.QApplication.clipboard().setText(path)
+
+    def _confirm_delete(self, count: int, sample_paths: List[str]) -> bool:
+        if count <= 0:
+            QtWidgets.QMessageBox.information(self, "Delete from database", "No rows selected.")
+            return False
+        preview = "\n".join(sample_paths[:5])
+        if count > 5:
+            preview += f"\n… and {count - 5} more"
+        msg = QtWidgets.QMessageBox(self)
+        msg.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Delete from database")
+        msg.setText(
+            f"This will permanently delete {count} row(s) from the catalog database.\n\n"
+            "Files on disk will NOT be touched."
+        )
+        msg.setInformativeText(preview)
+        msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Cancel | QtWidgets.QMessageBox.StandardButton.Ok)
+        msg.setDefaultButton(QtWidgets.QMessageBox.StandardButton.Cancel)
+        ret = msg.exec()
+        return ret == QtWidgets.QMessageBox.StandardButton.Ok
+
+    def _delete_rows_by_ids(self, ids: List[int], paths: List[str]) -> None:
+        if not ids:
+            QtWidgets.QMessageBox.information(self, "Delete from database", "No rows selected.")
+            return
+        if not self._confirm_delete(len(ids), paths):
+            return
+        db_path = self._db_path_provider()
+        try:
+            with sqlite3.connect(str(db_path)) as con:
+                cur = con.cursor()
+                CHUNK = 1000
+                removed = 0
+                for i in range(0, len(ids), CHUNK):
+                    chunk = ids[i:i+CHUNK]
+                    placeholders = ",".join(["?"] * len(chunk))
+                    cur.execute(f"DELETE FROM files WHERE file_id IN ({placeholders})", chunk)
+                    removed += cur.rowcount
+                con.commit()
+            QtWidgets.QMessageBox.information(self, "Delete from database", f"Removed {removed} row(s) from the database.")
+        except Exception as e:
+            import traceback
+            QtWidgets.QMessageBox.critical(self, "Delete failed", f"Could not delete rows:\n{e}\n\n{traceback.format_exc()}")
+            return
+        # Refresh views and stats
+        self.mark_stale()
+        self.refresh_data()
+        parent = self.parent()
+        if parent and hasattr(parent, "refresh_stats"):
+            try:
+                parent.refresh_stats()  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+    def _delete_selected_table_rows(self) -> None:
+        sel = self.tableView.selectionModel().selectedRows()
+        if not sel:
+            QtWidgets.QMessageBox.information(self, "Delete from database", "Select one or more rows to delete.")
+            return
+        ids: List[int] = []
+        paths: List[str] = []
+        for proxy_index in sel:
+            source_index = self.proxyModel.mapToSource(proxy_index)
+            row = self.tableModel.raw_row(source_index.row())
+            row_dict = row_as_dict(row)
+            fid = row_get(row_dict, "file_id")
+            p = row_get(row_dict, "path_abs") or ""
+            if fid is not None:
+                ids.append(int(fid))
+                paths.append(str(p))
+        self._delete_rows_by_ids(ids, paths)
+
+    def _delete_selected_tree_rows(self) -> None:
+        sel = self.treeView.selectionModel().selectedIndexes()
+        if not sel:
+            QtWidgets.QMessageBox.information(self, "Delete from database", "Select one or more files in the tree to delete.")
+            return
+        # Filter to first column to avoid duplicates per row
+        ids: List[int] = []
+        paths: List[str] = []
+        seen = set()
+        for idx in sel:
+            if idx.column() != 0:
+                continue
+            item = self.treeModel.itemFromIndex(idx)
+            if not item or item.data(IS_DIRECTORY_ROLE):
+                continue
+            row = item.data(ROW_DATA_ROLE)
+            row_dict = row_as_dict(row)
+            fid = row_get(row_dict, "file_id")
+            p = row_get(row_dict, "path_abs") or ""
+            if fid is None:
+                continue
+            if fid in seen:
+                continue
+            seen.add(fid)
+            ids.append(int(fid))
+            paths.append(str(p))
+        self._delete_rows_by_ids(ids, paths)
 
 
 class MainWindow(QtWidgets.QMainWindow):

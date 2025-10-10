@@ -246,11 +246,17 @@ def detect_duplicates(
             )
             rows = cur.fetchall()
             emit_log(f"[META] Candidate rows: {len(rows):,}")
-            groups: Dict[Tuple[int, str, str], List[Tuple[str, str]]] = {}
+            groups: Dict[Tuple[int, str, str], List[Dict[str, Any]]] = {}
             for row in rows:
-                _, path_abs, size_bytes_val, name_val, ext_val, mtime_val = row
+                file_id_val, path_abs, size_bytes_val, name_val, ext_val, mtime_val = row
                 key = (size_bytes_val, name_val.lower(), (ext_val or '').lower())
-                groups.setdefault(key, []).append((path_abs, mtime_val))
+                groups.setdefault(key, []).append(
+                    {
+                        "file_id": int(file_id_val),
+                        "path": path_abs,
+                        "mtime": mtime_val or "",
+                    }
+                )
             metadata_groups: List[Dict[str, Any]] = []
             duplicate_groups_count = 0
             duplicate_files_count = 0
@@ -264,10 +270,7 @@ def detect_duplicates(
                         "size_bytes": key[0],
                         "name": key[1],
                         "ext": key[2],
-                        "members": [
-                            {"path": path, "mtime": mtime}
-                            for path, mtime in members
-                        ],
+                        "members": members,
                     }
                 )
             stats["duplicate_groups"] = duplicate_groups_count
@@ -1051,6 +1054,7 @@ def main():
     ap.add_argument("--skip-quick-hash", action="store_true", help="Skip quick hash stage")
     ap.add_argument("--skip-sha256", action="store_true", help="Skip SHA256 stage")
     ap.add_argument("--metadata-only", action="store_true", help="Use metadata-only duplicate detection (size+name) without hashing")
+    ap.add_argument("--metadata-prune", action="store_true", help="After metadata-only detection, remove duplicate rows from the catalog database (keeps the oldest entry)")
     ap.add_argument("--report", action="store_true", help="Show duplicate report after detection")
     ap.add_argument("--report-only", action="store_true", help="Only show report, skip detection")
     ap.add_argument("--report-limit", type=int, default=100, help="Limit number of duplicate groups in report")
@@ -1059,6 +1063,11 @@ def main():
     cfg = load_config(Path(args.config))
     
     stats: Optional[Dict[str, Any]] = None
+
+    if args.metadata_prune:
+        args.metadata_only = True
+        args.skip_quick_hash = True
+        args.skip_sha256 = True
 
     if args.metadata_only and args.report_only:
         print("Metadata-only mode ignores --report-only; running detection instead.")
@@ -1102,6 +1111,80 @@ def main():
                     print(f"      • {member['path']}")
                 if len(group["members"]) > 3:
                     print(f"      • ... {len(group['members']) - 3} more")
+
+    if args.metadata_prune:
+        if not stats or not stats.get("metadata_groups"):
+            print("\nNo metadata duplicate groups found; nothing to prune.")
+        else:
+            print("\nPruning duplicate catalog rows based on metadata groups...")
+            to_delete: List[int] = []
+            kept_summary: List[Dict[str, Any]] = []
+            pruned_groups = 0
+            pruned_files = 0
+
+            from datetime import datetime
+
+            def _parse_mtime(value: str) -> float:
+                if not value:
+                    return 0.0
+                try:
+                    return datetime.fromisoformat(value).timestamp()
+                except Exception:
+                    return 0.0
+
+            for group in stats.get("metadata_groups", []):
+                members = group.get("members", [])
+                if len(members) <= 1:
+                    continue
+                sorted_members = sorted(
+                    members,
+                    key=lambda m: (
+                        _parse_mtime(m.get("mtime", "")),
+                        str(m.get("path", "")).lower(),
+                        int(m.get("file_id", 0)),
+                    ),
+                )
+                keeper = sorted_members[0]
+                losers = sorted_members[1:]
+                pruned_groups += 1
+                pruned_files += len(losers)
+                to_delete.extend(int(m["file_id"]) for m in losers if m.get("file_id") is not None)
+                kept_summary.append(
+                    {
+                        "name": group.get("name"),
+                        "ext": group.get("ext"),
+                        "size_bytes": group.get("size_bytes"),
+                        "kept": keeper,
+                        "removed": losers,
+                    }
+                )
+
+            if not to_delete:
+                print("No removable duplicates identified.")
+            else:
+                con = connect(Path(cfg.db.path))
+                try:
+                    cur = con.cursor()
+                    CHUNK = 500
+                    for idx in range(0, len(to_delete), CHUNK):
+                        chunk = to_delete[idx : idx + CHUNK]
+                        placeholders = ",".join("?" for _ in chunk)
+                        cur.execute(f"DELETE FROM files WHERE file_id IN ({placeholders})", chunk)
+                    con.commit()
+                finally:
+                    con.close()
+
+                print(
+                    f"Removed {pruned_files:,} catalog rows across {pruned_groups:,} metadata duplicate groups (kept the oldest entry in each)."
+                )
+                preview = kept_summary[:5]
+                for entry in preview:
+                    size_mb = (entry.get("size_bytes") or 0) / (1024**2)
+                    print(
+                        f"  • Kept {entry['kept'].get('path')} ({size_mb:.2f} MB); removed {len(entry['removed'])} siblings."
+                    )
+                if len(kept_summary) > len(preview):
+                    print(f"  • ... {len(kept_summary) - len(preview)} more groups pruned")
     
     if args.metadata_only and (args.report or args.report_only):
         print("\nMetadata-only mode does not compute SHA256 hashes; skipping hash-based duplicate report.")
