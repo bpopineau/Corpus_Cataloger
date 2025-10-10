@@ -41,3 +41,24 @@ def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
                 break
             h.update(b)
     return h.hexdigest()
+
+
+def blake3_file(path: Path, chunk_size: int = 2 * 1024 * 1024) -> str:
+    """Compute the BLAKE3 digest for a file.
+
+    Falls back to SHA256 if the blake3 module is unavailable.
+    """
+    try:
+        import blake3  # type: ignore
+    except Exception:
+        # Defer import error until the function is actually used elsewhere
+        raise RuntimeError("The 'blake3' package is not installed. Install it with 'pip install blake3'.")
+
+    hasher = blake3.blake3()
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            hasher.update(chunk)
+    return hasher.hexdigest()
