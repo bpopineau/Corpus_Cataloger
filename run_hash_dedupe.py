@@ -4,7 +4,7 @@ This computes quick hashes and SHA256 for cryptographic duplicate verification.
 """
 import argparse
 from catalog.config import load_config
-from catalog.dedupe import detect_duplicates, get_duplicate_report
+from catalog.dedupe import detect_duplicates, get_duplicate_report, prune_hash_duplicates
 from pathlib import Path
 
 def main():
@@ -34,6 +34,11 @@ def main():
         help="Only process files with paths starting with this prefix (can repeat)"
     )
     parser.add_argument(
+        "--exclude-prefix",
+        action="append",
+        help="Skip files with paths starting with this prefix (can repeat)"
+    )
+    parser.add_argument(
         "--max-workers",
         type=int,
         help="Number of worker threads (default: use config value)"
@@ -58,6 +63,26 @@ def main():
         type=int,
         default=20,
         help="Number of duplicate groups to show in report (default: 20)"
+    )
+    parser.add_argument(
+        "--delete-duplicates",
+        action="store_true",
+        help="Delete duplicate files on disk and prune catalog rows after detection"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview deletions without touching disk or database"
+    )
+    parser.add_argument(
+        "--keep-newest",
+        action="store_true",
+        help="Keep the newest file in each duplicate group (default keeps oldest)"
+    )
+    parser.add_argument(
+        "--no-confirm",
+        action="store_true",
+        help="Skip confirmation prompt before deleting duplicates"
     )
     
     args = parser.parse_args()
@@ -88,6 +113,7 @@ def main():
         max_workers=args.max_workers,
         network_friendly=args.network_friendly,
         include_prefixes=args.include_prefix or [],
+        exclude_prefixes=args.exclude_prefix or [],
         progressive=args.progressive,
         use_blake3=args.blake3,
     )
@@ -113,6 +139,7 @@ def main():
             Path(cfg.db.path),
             args.report_limit,
             include_prefixes=args.include_prefix or [],
+            exclude_prefixes=args.exclude_prefix or [],
         )
         
         for i, group in enumerate(report, 1):
@@ -126,6 +153,64 @@ def main():
                 if path_info.get('mtime'):
                     print(f"        Modified: {path_info['mtime']}")
             print()
+
+        if args.delete_duplicates:
+            keep_strategy = "newest" if args.keep_newest else "oldest"
+            preview = prune_hash_duplicates(
+                cfg,
+                include_prefixes=args.include_prefix or [],
+                exclude_prefixes=args.exclude_prefix or [],
+                dry_run=True,
+                keep_strategy=keep_strategy,
+            )
+
+            potential_gb = preview["potential_bytes_reclaimed"] / float(1024**3)
+            print("\n" + "=" * 100)
+            print("HASH DUPLICATE PRUNE (PREVIEW)")
+            print("=" * 100)
+            print(f"Duplicate hash groups:   {preview['hash_groups']:>10,}")
+            print(f"Groups with removals:    {preview['groups_modified']:>10,}")
+            print(f"Duplicate files flagged: {preview['files_considered']:>10,}")
+            print(f"Potential space freed:   {potential_gb:>10.2f} GB")
+
+            if preview["files_considered"] == 0:
+                print("No duplicate files eligible for removal.")
+                return
+
+            if args.dry_run:
+                print("Dry run requested; no files were removed.")
+                return
+
+            proceed = True
+            if not args.no_confirm:
+                prompt = f"Proceed with deleting {preview['files_considered']:,} duplicate files? [y/N]: "
+                proceed = input(prompt).strip().lower() == "y"
+            if not proceed:
+                print("Duplicate deletion cancelled. Rerun with --dry-run to preview or with --no-confirm to skip prompts.")
+                return
+
+            result = prune_hash_duplicates(
+                cfg,
+                include_prefixes=args.include_prefix or [],
+                exclude_prefixes=args.exclude_prefix or [],
+                dry_run=False,
+                keep_strategy=keep_strategy,
+            )
+            reclaimed_gb = result["bytes_reclaimed"] / float(1024**3)
+            print("\n" + "=" * 100)
+            print("HASH DUPLICATE PRUNE (RESULT)")
+            print("=" * 100)
+            print(f"Groups processed:        {result['hash_groups']:>10,}")
+            print(f"Groups modified:         {result['groups_modified']:>10,}")
+            print(f"Files removed:           {result['files_removed']:>10,}")
+            print(f"Catalog rows removed:    {result['db_rows_removed']:>10,}")
+            print(f"Space reclaimed:         {reclaimed_gb:>10.2f} GB")
+            if result["errors"]:
+                print("\nErrors encountered (showing up to 5):")
+                for err in result["errors"][:5]:
+                    print(f"  - {err}")
+                if len(result["errors"]) > 5:
+                    print(f"  - ... {len(result['errors']) - 5} more issues")
 
 if __name__ == "__main__":
     main()

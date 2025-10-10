@@ -34,6 +34,17 @@ Quick start:
    `sha_chunk_bytes` can dramatically reduce wall-clock time by keeping more
    I/O requests in flight.
 
+   To reclaim space using the computed hashes, run the hash prune workflow after
+   detection:
+
+   ```powershell
+   python -m catalog.dedupe --config config/catalog.yaml --delete-duplicates --dry-run
+   ```
+
+   Review the preview output and rerun without `--dry-run` to actually delete the
+   duplicate files. Add `--keep-newest` to keep the most recently modified file in
+   each group, or `--no-confirm` to skip the confirmation prompt once you're ready.
+
 ## Development
 
 For static type checking with mypy or editor integrations, the project ships the `types-PyYAML` stub package alongside runtime dependencies. If you installed requirements before this addition, re-run the install step to pick up the updated stubs:

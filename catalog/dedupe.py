@@ -23,6 +23,35 @@ except Exception:
 # Callback type aliases (kept local for loose coupling)
 ProgressCallback = Callable[[str, int, int, str], None]
 LogCallback = Callable[[str], None]
+
+
+def build_path_filter_sql(
+    include_prefixes: List[str],
+    exclude_prefixes: List[str],
+    alias: str,
+) -> Tuple[str, List[str]]:
+    """Build a SQL WHERE fragment for include/exclude path filters."""
+
+    clauses: List[str] = []
+    params: List[str] = []
+
+    if include_prefixes:
+        ors = []
+        for prefix in include_prefixes:
+            ors.append(f"{alias}.path_abs LIKE ?")
+            params.append(prefix.rstrip('\\/') + '%')
+        clauses.append('(' + ' OR '.join(ors) + ')')
+
+    if exclude_prefixes:
+        ors = []
+        for prefix in exclude_prefixes:
+            ors.append(f"{alias}.path_abs LIKE ?")
+            params.append(prefix.rstrip('\\/') + '%')
+        clauses.append('NOT (' + ' OR '.join(ors) + ')')
+
+    if clauses:
+        return ' AND ' + ' AND '.join(clauses) + ' ', params
+    return '', []
 def detect_duplicates(
     cfg: CatalogConfig,
     progress_cb: Optional[ProgressCallback] = None,
@@ -123,25 +152,6 @@ def detect_duplicates(
     include_prefixes = include_prefixes or []
     exclude_prefixes = exclude_prefixes or []
 
-    def path_filter_sql(alias: str) -> Tuple[str, List[str]]:
-        clauses: List[str] = []
-        params: List[str] = []
-        if include_prefixes:
-            ors = []
-            for p in include_prefixes:
-                ors.append(f"{alias}.path_abs LIKE ?")
-                params.append(p.rstrip('\\/') + '%')
-            clauses.append('(' + ' OR '.join(ors) + ')')
-        if exclude_prefixes:
-            ors = []
-            for p in exclude_prefixes:
-                ors.append(f"{alias}.path_abs LIKE ?")
-                params.append(p.rstrip('\\/') + '%')
-            clauses.append('NOT (' + ' OR '.join(ors) + ')')
-        if clauses:
-            return ' AND ' + ' AND '.join(clauses) + ' ', params
-        return '', []
-
     emit_progress("start", 0, 0, "Initializing duplicate detection...")
     mode_label = "metadata-only" if metadata_only else "hash"
     emit_log(
@@ -221,7 +231,7 @@ def detect_duplicates(
 
         if metadata_only:
             emit_log("[META] Running metadata-only duplicate scan (size + basename)")
-            filt_sql, filt_params = path_filter_sql('f')
+            filt_sql, filt_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
             cur.execute(
                 """
                 WITH dup_meta AS (
@@ -290,7 +300,7 @@ def detect_duplicates(
             emit_progress("quick_hash", 0, 0, "Finding candidates for quick hashing...")
 
             cur.execute("DROP TABLE IF EXISTS qh_candidates;")
-            filt_sql, filt_params = path_filter_sql('f')
+            filt_sql, filt_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
             qh_sql = (
                 """
                 CREATE TEMP TABLE qh_candidates AS
@@ -457,7 +467,7 @@ def detect_duplicates(
                 # Progressive staged sampling: head hash (h1), then tail hash (h2), then full sha for remaining collisions
                 emit_log("[PROG] Progressive mode enabled")
                 cur.execute("DROP TABLE IF EXISTS prog_candidates;")
-                filt_sql, filt_params = path_filter_sql('f')
+                filt_sql, filt_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
                 # Bring over persisted h1/h2 to avoid recomputation when unchanged
                 cur.execute(
                     (
@@ -673,7 +683,7 @@ def detect_duplicates(
             else:
                 # Original SHA candidates path (quick-hash centric)
                 cur.execute("DROP TABLE IF EXISTS sha_candidates;")
-                filt_sql, filt_params = path_filter_sql('f')
+                filt_sql, filt_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
                 sha_sql = (
                     """
                     CREATE TEMP TABLE sha_candidates AS
@@ -912,7 +922,7 @@ def detect_duplicates(
         # Stage 3: Identify duplicates
         emit_progress("analyze", 0, 0, "Analyzing duplicates...")
         emit_log("[STAGE 3] Analyzing duplicate groups")
-        filt_sql, filt_params = path_filter_sql('f')
+        filt_sql, filt_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
         cur.execute(
             """
             SELECT sha256, COUNT(*) as count, SUM(size_bytes) as total_size
@@ -972,30 +982,11 @@ def get_duplicate_report(
     include_prefixes = include_prefixes or []
     exclude_prefixes = exclude_prefixes or []
 
-    def path_filter_sql(alias: str) -> Tuple[str, List[str]]:
-        clauses: List[str] = []
-        params: List[str] = []
-        if include_prefixes:
-            ors = []
-            for p in include_prefixes:
-                ors.append(f"{alias}.path_abs LIKE ?")
-                params.append(p.rstrip('\\/') + '%')
-            clauses.append('(' + ' OR '.join(ors) + ')')
-        if exclude_prefixes:
-            ors = []
-            for p in exclude_prefixes:
-                ors.append(f"{alias}.path_abs LIKE ?")
-                params.append(p.rstrip('\\/') + '%')
-            clauses.append('NOT (' + ' OR '.join(ors) + ')')
-        if clauses:
-            return ' AND ' + ' AND '.join(clauses) + ' ', params
-        return '', []
-
     con = connect(db_path)
     try:
         cur = con.cursor()
 
-        filt_sql, filt_params = path_filter_sql('f')
+        filt_sql, filt_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
         cur.execute(
             """
             SELECT sha256, COUNT(*) as count, size_bytes
@@ -1013,7 +1004,7 @@ def get_duplicate_report(
             sha256, count, size_bytes = row
             
             # Get all paths for this duplicate group
-            path_filt_sql, path_filt_params = path_filter_sql('f')
+            path_filt_sql, path_filt_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
             cur.execute(
                 """
                 SELECT path_abs, mtime_utc
@@ -1039,6 +1030,239 @@ def get_duplicate_report(
         con.close()
 
 
+def prune_hash_duplicates(
+    cfg: CatalogConfig,
+    include_prefixes: Optional[List[str]] = None,
+    exclude_prefixes: Optional[List[str]] = None,
+    dry_run: bool = True,
+    keep_strategy: str = "oldest",
+    log_cb: Optional[LogCallback] = None,
+) -> Dict[str, Any]:
+    """Remove duplicate files (based on SHA256) from disk and database."""
+
+    include_prefixes = include_prefixes or []
+    exclude_prefixes = exclude_prefixes or []
+    keep_strategy = keep_strategy.lower()
+    if keep_strategy not in {"oldest", "newest"}:
+        raise ValueError("keep_strategy must be 'oldest' or 'newest'")
+
+    def emit_log(message: str) -> None:
+        print(message)
+        if not log_cb:
+            return
+        try:
+            log_cb(message)
+        except Exception:
+            pass
+
+    def parse_ts(value: Optional[str]) -> float:
+        if not value:
+            return 0.0
+        try:
+            cleaned = value
+            if cleaned.endswith("Z"):
+                cleaned = cleaned[:-1] + "+00:00"
+            return datetime.fromisoformat(cleaned).timestamp()
+        except Exception:
+            return 0.0
+
+    db_path = Path(cfg.db.path)
+    if not db_path.exists():
+        emit_log(f"[HASH-PRUNE] Database not found: {db_path}")
+        return {
+            "error": "Database not found",
+            "hash_groups": 0,
+            "groups_modified": 0,
+            "files_considered": 0,
+            "files_removed": 0,
+            "db_rows_removed": 0,
+            "bytes_reclaimed": 0,
+            "potential_bytes_reclaimed": 0,
+            "errors": ["Database not found"],
+            "groups": [],
+        }
+
+    stats: Dict[str, Any] = {
+        "hash_groups": 0,
+        "groups_modified": 0,
+        "files_considered": 0,
+        "files_removed": 0,
+        "db_rows_removed": 0,
+        "bytes_reclaimed": 0,
+        "potential_bytes_reclaimed": 0,
+        "errors": [],
+        "groups": [],
+    }
+
+    con = connect(db_path)
+    try:
+        cur = con.cursor()
+
+        filter_sql, filter_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
+        cur.execute(
+            """
+            SELECT sha256, COUNT(*) AS cnt, MIN(size_bytes) AS size_bytes
+            FROM files f
+            WHERE sha256 IS NOT NULL
+              AND state NOT IN ('error', 'missing')
+            """ + filter_sql + """
+            GROUP BY sha256
+            HAVING COUNT(*) > 1
+            ORDER BY cnt DESC
+            """,
+            (*filter_params,),
+        )
+        duplicate_hashes = cur.fetchall()
+
+        if not duplicate_hashes:
+            emit_log("[HASH-PRUNE] No SHA256 duplicate groups found.")
+            return stats
+
+        stats["hash_groups"] = len(duplicate_hashes)
+        detail_filter_sql, detail_filter_params = build_path_filter_sql(include_prefixes, exclude_prefixes, 'f')
+        preview_log_budget = 50
+        preview_log_suppressed = False
+
+        for sha256, count, size_bytes in duplicate_hashes:
+            detail_sql = (
+                """
+                SELECT file_id, path_abs, size_bytes, mtime_utc, ctime_utc, last_seen_at
+                FROM files f
+                WHERE sha256 = ?
+                  AND state NOT IN ('error', 'missing')
+                """
+                + detail_filter_sql
+                + " ORDER BY mtime_utc ASC, file_id ASC"
+            )
+            cur.execute(detail_sql, (sha256, *detail_filter_params))
+            rows = cur.fetchall()
+            if len(rows) <= 1:
+                continue
+
+            members: List[Dict[str, Any]] = []
+            for file_id_val, path_abs, size_b, mtime_val, ctime_val, seen_val in rows:
+                members.append(
+                    {
+                        "file_id": int(file_id_val),
+                        "path": path_abs,
+                        "size_bytes": int(size_b or 0),
+                        "mtime": mtime_val or "",
+                        "ctime": ctime_val or "",
+                        "last_seen": seen_val or "",
+                    }
+                )
+
+            existing = [m for m in members if Path(m["path"]).exists()]
+            candidates = existing or members
+
+            if keep_strategy == "newest":
+                keeper = sorted(
+                    candidates,
+                    key=lambda rec: (
+                        -parse_ts(rec.get("mtime")),
+                        rec.get("path", "").lower(),
+                        rec.get("file_id", 0),
+                    ),
+                )[0]
+            else:
+                keeper = sorted(
+                    candidates,
+                    key=lambda rec: (
+                        parse_ts(rec.get("mtime")),
+                        rec.get("path", "").lower(),
+                        rec.get("file_id", 0),
+                    ),
+                )[0]
+
+            duplicates: List[Dict[str, Any]] = []
+            for rec in members:
+                if rec["file_id"] == keeper["file_id"]:
+                    continue
+                duplicates.append(rec)
+
+            if not duplicates:
+                continue
+
+            stats["groups_modified"] += 1
+            stats["files_considered"] += len(duplicates)
+
+            group_plan: Dict[str, Any] = {
+                "sha256": sha256,
+                "size_bytes": int(size_bytes or 0),
+                "count": len(members),
+                "keeper": keeper,
+                "duplicates": [],
+            }
+
+            for duplicate_rec in duplicates:
+                entry = {
+                    "file_id": duplicate_rec["file_id"],
+                    "path": duplicate_rec["path"],
+                    "size_bytes": duplicate_rec["size_bytes"],
+                    "status": "would-delete" if dry_run else "pending",
+                    "error": None,
+                }
+
+                stats["potential_bytes_reclaimed"] += duplicate_rec["size_bytes"]
+
+                if not dry_run:
+                    path_obj = Path(duplicate_rec["path"])
+                    if path_obj.exists():
+                        try:
+                            path_obj.unlink()
+                            entry["status"] = "deleted"
+                            stats["files_removed"] += 1
+                            stats["bytes_reclaimed"] += duplicate_rec["size_bytes"]
+                            emit_log(f"[HASH-PRUNE] Deleted duplicate file: {path_obj}")
+                        except Exception as exc:
+                            entry["status"] = "error"
+                            entry["error"] = str(exc)
+                            stats["errors"].append(
+                                f"Failed to delete {duplicate_rec['path']}: {exc}"
+                            )
+                            emit_log(f"[HASH-PRUNE][ERROR] Failed to delete {path_obj}: {exc}")
+                    else:
+                        entry["status"] = "missing"
+                        emit_log(f"[HASH-PRUNE] File already missing on disk: {duplicate_rec['path']}")
+
+                    if entry["status"] in {"deleted", "missing"}:
+                        try:
+                            cur.execute("DELETE FROM files WHERE file_id=?", (duplicate_rec["file_id"],))
+                            stats["db_rows_removed"] += cur.rowcount
+                            entry["status"] = entry["status"] + " +db-pruned"
+                        except Exception as exc:
+                            entry["error"] = (entry.get("error") or "") + f" DB delete failed: {exc}"
+                            stats["errors"].append(
+                                f"Failed to remove DB row for file_id={duplicate_rec['file_id']}: {exc}"
+                            )
+                            emit_log(
+                                f"[HASH-PRUNE][ERROR] Failed to remove DB row for file_id={duplicate_rec['file_id']}: {exc}"
+                            )
+                else:
+                    if preview_log_budget > 0:
+                        emit_log(
+                            f"[HASH-PRUNE] Would remove duplicate: {duplicate_rec['path']} (file_id={duplicate_rec['file_id']})"
+                        )
+                        preview_log_budget -= 1
+                    elif not preview_log_suppressed:
+                        emit_log(
+                            "[HASH-PRUNE] Additional duplicate previews suppressed; re-run with --dry-run for full list."
+                        )
+                        preview_log_suppressed = True
+
+                group_plan["duplicates"].append(entry)
+
+            stats["groups"].append(group_plan)
+
+        if not dry_run:
+            con.commit()
+
+        return stats
+
+    finally:
+        con.close()
+
+
 def main():
     ap = argparse.ArgumentParser(description="Corpus Cataloger - Duplicate Detection")
     ap.add_argument("--config", required=True, help="Path to config file")
@@ -1057,6 +1281,10 @@ def main():
     ap.add_argument("--report", action="store_true", help="Show duplicate report after detection")
     ap.add_argument("--report-only", action="store_true", help="Only show report, skip detection")
     ap.add_argument("--report-limit", type=int, default=100, help="Limit number of duplicate groups in report")
+    ap.add_argument("--delete-duplicates", action="store_true", help="Delete duplicate files on disk and prune their catalog rows after detection")
+    ap.add_argument("--dry-run", action="store_true", help="Preview duplicate deletions without touching disk or database")
+    ap.add_argument("--keep-newest", action="store_true", help="Keep the newest file in each hash group (default keeps oldest)")
+    ap.add_argument("--no-confirm", action="store_true", help="Skip confirmation prompt before deleting duplicates")
     args = ap.parse_args()
     
     cfg = load_config(Path(args.config))
@@ -1185,6 +1413,79 @@ def main():
                 if len(kept_summary) > len(preview):
                     print(f"  • ... {len(kept_summary) - len(preview)} more groups pruned")
     
+    if args.delete_duplicates:
+        if args.metadata_only:
+            print("\nCannot delete duplicates while running in metadata-only mode. Rerun without --metadata-only.")
+        else:
+            include_prefixes = args.include_prefix or []
+            exclude_prefixes = args.exclude_prefix or []
+            keep_strategy = "newest" if args.keep_newest else "oldest"
+
+            print("\n" + "=" * 70)
+            print("HASH DUPLICATE PRUNE (PREVIEW)")
+            print("=" * 70)
+            preview = prune_hash_duplicates(
+                cfg,
+                include_prefixes=include_prefixes,
+                exclude_prefixes=exclude_prefixes,
+                dry_run=True,
+                keep_strategy=keep_strategy,
+            )
+
+            potential_gb = preview["potential_bytes_reclaimed"] / float(1024**3)
+            print(f"Duplicate hash groups:   {preview['hash_groups']:>10,}")
+            print(f"Groups with removals:    {preview['groups_modified']:>10,}")
+            print(f"Duplicate files flagged: {preview['files_considered']:>10,}")
+            print(f"Potential space freed:   {potential_gb:>10.2f} GB")
+
+            if preview["files_considered"] == 0:
+                print("No duplicate files eligible for removal.")
+            else:
+                sample_groups = preview["groups"][: min(5, len(preview["groups"]))]
+                if sample_groups:
+                    print("\nExamples:")
+                    for group in sample_groups:
+                        print(f"  • Keep: {group['keeper']['path']}")
+                        for dup in group["duplicates"][:3]:
+                            print(f"      - Remove: {dup['path']}")
+                        if len(group["duplicates"]) > 3:
+                            print(f"      - ... {len(group['duplicates']) - 3} more duplicates")
+
+                if args.dry_run:
+                    print("\nDry run requested; no files were removed.")
+                else:
+                    proceed = True
+                    if not args.no_confirm:
+                        prompt = f"\nProceed with deleting {preview['files_considered']:,} duplicate files? [y/N]: "
+                        proceed = input(prompt).strip().lower() == "y"
+                    if not proceed:
+                        print("Duplicate deletion cancelled. Rerun with --dry-run to preview or with --no-confirm to skip prompts.")
+                    else:
+                        print("\nExecuting duplicate removal...")
+                        result = prune_hash_duplicates(
+                            cfg,
+                            include_prefixes=include_prefixes,
+                            exclude_prefixes=exclude_prefixes,
+                            dry_run=False,
+                            keep_strategy=keep_strategy,
+                        )
+                        reclaimed_gb = result["bytes_reclaimed"] / float(1024**3)
+                        print("\n" + "=" * 70)
+                        print("HASH DUPLICATE PRUNE (RESULT)")
+                        print("=" * 70)
+                        print(f"Groups processed:        {result['hash_groups']:>10,}")
+                        print(f"Groups modified:         {result['groups_modified']:>10,}")
+                        print(f"Files removed:           {result['files_removed']:>10,}")
+                        print(f"Catalog rows removed:    {result['db_rows_removed']:>10,}")
+                        print(f"Space reclaimed:         {reclaimed_gb:>10.2f} GB")
+                        if result["errors"]:
+                            print("\nErrors encountered (showing up to 5):")
+                            for err in result["errors"][:5]:
+                                print(f"  - {err}")
+                            if len(result["errors"]) > 5:
+                                print(f"  - ... {len(result['errors']) - 5} more issues")
+                        print("=" * 70)
+
     if args.metadata_only and (args.report or args.report_only):
         print("\nMetadata-only mode does not compute SHA256 hashes; skipping hash-based duplicate report.")
         if stats and stats.get("metadata_groups"):
