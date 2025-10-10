@@ -781,24 +781,22 @@ def detect_duplicates(
                         return {"file_id": file_id, "status": "success", "sha256": hasher.hexdigest(), "quick_hash": qh_h.hexdigest()}
                     else:
                         if use_blake3 and HAS_BLAKE3:
-                            # Compute BLAKE3 and SHA-256 in one pass to avoid extra I/O
-                            import hashlib
-                            sha_hasher = hashlib.sha256()
+                            # Use BLAKE3 only - much faster than SHA256
                             b3_hasher = blake3.blake3()
                             with path.open('rb', buffering=1024*64) as f:
                                 while True:
                                     chunk = f.read(sha_chunk_bytes)
                                     if not chunk:
                                         break
-                                    sha_hasher.update(chunk)
                                     b3_hasher.update(chunk)
                                     if limiter:
                                         limiter.acquire(len(chunk))
+                            b3_hash = b3_hasher.hexdigest()
                             return {
                                 "file_id": file_id,
                                 "status": "success",
-                                "sha256": sha_hasher.hexdigest(),
-                                "blake3": b3_hasher.hexdigest(),
+                                "sha256": b3_hash,  # Store BLAKE3 in sha256 column for compatibility
+                                "blake3": b3_hash,
                             }
                         else:
                             if limiter:
