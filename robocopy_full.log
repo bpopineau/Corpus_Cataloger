@@ -1,0 +1,766 @@
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy for Windows                              
+-------------------------------------------------------------------------------
+
+  Started : Friday, October 10, 2025 11:44:06 AM
+   Source : S:\
+     Dest : C:\Users\brand\Projects\Server\
+
+    Files : *.*
+	    
+  Options : *.* /BYTES /TEE /S /E /DCOPY:DA /COPY:DAT /PURGE /MIR /MT:8 /R:2 /W:5 
+
+------------------------------------------------------------------------------
+
+	    New File  		   10244	S:\4 Safety\.DS_Store 99%  100%  
+	    New File  		   12032	S:\4 Safety\a Safety Meeting Report..2018.xlsx100%  
+	    New File  		  140072	S:\4 Safety\aaa ESSCO Code of Safe Practices_2025.pdf100%  
+	    New File  		   98628	S:\4 Safety\aaa ESSCO IIPP May 2025.pdf100%  
+	    New File  		  258745	S:\4 Safety\aaa ESSCO SAFTEY MANUAL July 2025.pdf100%  
+	    New File  		 1993563	S:\4 Safety\AAA Flash and Shock Hazard Boundary Poster.pdf100%  
+	    New File  		 1837102	S:\4 Safety\AAAA   OSHA_RECORDABILITY_GUIDE.pdf100%  
+	    New File  		   13862	S:\4 Safety\AAAA IF THERE IS AN ACCIDENT READ THIS ASAP.docx100%  
+	    New File  		   28501	S:\4 Safety\AAAA IF THERE IS AN ACCIDENT READ THIS ASAP.pdf100%  
+	    New File  		  202051	S:\4 Safety\Appendix C Enhanced Electrical Safety Policy.pdf100%  
+	    New File  		 1580334	S:\4 Safety\CALOSHA 301 FORM.pdf100%  
+	    New File  		     115	S:\4 Safety\desktop.ini100%  
+	    New File  		   50859	S:\4 Safety\Emergency Contacts (Site Specific).xlsx100%  
+	    New File  		    1168	S:\4 Safety\maxdesk.ini100%  
+	    New File  		 1011352	S:\4 Safety\PPThumbs.ptn100%  
+	    New File  		  198144	S:\4 Safety\Thumbs.db100%  
+	    New File  		 1045802	S:\2 Bids\2019 LAUSD APPROVED (1).pdf100%  
+	    New File  		   31224	S:\2 Bids\2022 Review.pdf100%  
+	    New File  		132007271	S:\2 Bids\60-Monroe ES HVAC Upgrade12092021.osp 17%   19%   20%   23%   25%   28%   30%   32%   34%   35%   36%   38%   40%   42%   45%   46%   48%   49%   50%   52%   54%   55%   56%   57%   60%   61%   62%   65%   67%   68%   69%   72%   73%   74%   76%   77%   80%   81%   82%   84%   86%   87%   88%   91%   92%   93%   95%   97%   99%  100%  
+	    New File  		   20267	S:\2 Bids\Agora Pricing Template Material List.xlsx100%  
+	    New File  		   98873	S:\2 Bids\Bond Capacity Letter 3.pdf100%  
+	    New File  		     115	S:\2 Bids\desktop.ini100%  
+	    New File  		1265745920	S:\2 Bids\EBM 10.1.25.BAK  9%   10%   11%   12%   13%   14%   15%   16%   17%   18%   19%   20%   21%   22%   23%   24%   25%   26%   27%   28%   29%   30%   31%   32%   33%   34%   35%   36%   37%   38%   39%   40%   41%   42%   43%   44%   45%   46%   47%   48%   49%   50%   51%   52%   53%   54%   55%   56%   57%   58%   59%   60%   61%   62%   63%   64%   65%   66%   67%   68%   69%   70%   71%   72%   73%   74%   75%   76%   77%   78%   79%   80%   81%   82%   83%   84%   85%   86%   87%   88%   89%   90%   91%   92%   93%   94%   95%   96%   97%   98%   99%  100%  
+	    New File  		   13732	S:\2 Bids\ESSCO Solar, Battery Storage Strategy.xlsx100%  
+	    New File  		  208896	S:\2 Bids\General Notes & Considerations for Solar for New Construction.doc100%  
+	    New File  		  467726	S:\2 Bids\Graybar Quotation  for EMT Weathertight Ftgs.pdf100%  
+	    New File  		   35260	S:\2 Bids\LAUSD Contractor_Prequalification_Questionnaire_Form.pdf100%  
+	    New File  		   54594	S:\2 Bids\Material Pricing 2023 Material List.xlsx100%  
+	    New File  		227115008	S:\2 Bids\Robert.mdb100%  
+	    New File  		   75730	S:\2 Bids\Sales Tax List 2023.xlsx100%  
+	    New File  		 2624071	S:\2 Bids\Scan1567.pdf100%  
+	    New File  		    9563	S:\2 Bids\Trenching and Pull Boxes_Slabs.xlsx100%  
+	    New File  		  309947	S:\2 Bids\Verification Cert_104028089_13.pdf100%  
+	    New File  		 1377061	S:\3 Operations\2020, due Feb-May, Complete set.pdf100%  
+	    New File  		  252458	S:\3 Operations\2020, due June, Complete set.pdf100%  
+	    New File  		 1703380	S:\3 Operations\2024 Notice of Non Discriminationf.pdf100%  
+	    New File  		  231835	S:\3 Operations\2668 E Foothill Lease 2017.pdf100%  
+	    New File  		  326232	S:\3 Operations\2668 Lease Extension 2022-24.pdf100%  
+	    New File  		  323630	S:\3 Operations\2668 Lease Extention.pdf100%  
+	    New File  		  110592	S:\3 Operations\aaa ESSCO Letterhead2025.doc100%  
+	    New File  		 2240512	S:\3 Operations\ESSCO Title Block 30x42.rfa100%  
+	    New File  		  182973	S:\3 Operations\ESSCO vehicle complaince.docx100%  
+	    New File  		  119711	S:\3 Operations\ESSCO vehicle complaince.pdf100%  
+	    New File  		 2170880	S:\3 Operations\ESSCP-30X42 template.rfa100%  
+	    New File  		    8947	S:\3 Operations\Expiration Dates.xlsx100%  
+	    New File  		 4352943	S:\3 Operations\Form W-9_ESSCO_6.30.23.pdf100%  
+	    New File  		   58933	S:\3 Operations\Inv_20200602_from_Lazarian_Vinedo_Properties_LLC_20448.pdf100%  
+	    New File  		   58758	S:\3 Operations\Inv_20200604_from_Lazarian_Vinedo_Properties_LLC_20448.pdf100%  
+	    New File  		     850	S:\3 Operations\maxdesk.ini100%  
+	    New File  		  114013	S:\3 Operations\Office of Small Business-Certification Approved.pdf100%  
+	    New File  		 3159470	S:\3 Operations\Pandemics-and-Construction-Productivity-Quantifying-the-Impact-Initial-Findings.pdf100%  
+	    New File  		  404583	S:\3 Operations\Paycheck-Protection-Program-Application-3-30-2020-v3 (002).pdf100%  
+	    New File  		   13098	S:\3 Operations\PPA Calculation.xlsx100%  
+	    New File  		   74549	S:\3 Operations\PPP-Lender-Application-Form-Fillable.pdf100%  
+	    New File  		  449073	S:\3 Operations\PPThumbs.ptn100%  
+	    New File  		   59972	S:\3 Operations\SBA Certificate 2026.pdf100%  
+	    New File  		  740272	S:\3 Operations\scan_jenny.morales_2022-09-09-13-51-16.pdf100%  
+	    New File  		   56436	S:\3 Operations\Small Business Certification to 5 31 24.pdf100%  
+	    New File  		  597240	S:\3 Operations\Statement of Information 2022 Certified 550-C.pdf100%  
+	    New File  		   11211	S:\3 Operations\test.xlsx100%  
+	    New File  		   25088	S:\3 Operations\Thumbs.db100%  
+	    New File  		  126570	S:\3 Operations\version 3 - ETran Input Template - PPP Loans.pdf100%  
+	    New File  		   27172	S:\3 Operations\Yearly Software Costs.xlsx100%  
+	    New File  		     162	S:\3 Operations\~$a ESSCO Letterhead2025.doc100%  
+	    New File  		     162	S:\3 Operations\~$tion Items.docx100%  
+	    New File  		   10244	S:\1 Jobs\.DS_Store100%  
+	    New File  		   26610	S:\1 Jobs\00 ESSCO Payment Log 00.xlsx100%  
+	    New File  		   72733	S:\1 Jobs\082018_-_APPROVED_-_Revised_PQ.pdf100%  
+	    New File  		   14753	S:\1 Jobs\ESSCO Cost Codes.xlsx100%  
+	    New File  		   95581	S:\1 Jobs\ESSCO Project Completion Form.pdf100%  
+	    New File  		   68608	S:\1 Jobs\ESSCO Subcontract.doc100%  
+	    New File  		  397824	S:\1 Jobs\INVOICE LOG.xls100%  
+	    New File  		  313591	S:\1 Jobs\INVOICE_no retention_7.26.22.xlsx100%  
+	    New File  		  314025	S:\1 Jobs\INVOICE_retention_7.26.22.xlsx100%  
+	    New File  		     190	S:\1 Jobs\Job Cost Worksheet for New Job.url100%  
+	    New File  		    9125	S:\1 Jobs\Job Flow.xlsx100%  
+	    New File  		  259691	S:\1 Jobs\JOBCOST.xlsx100%  
+	    New File  		   57344	S:\1 Jobs\JXE-Import.xls100%  
+	    New File  		  151242	S:\1 Jobs\LA Parks & Rec - Apprentice Utilization Checklist.pdf100%  
+	    New File  		  362750	S:\1 Jobs\LA Parks & Rec - OCPS Pre-Con Checklist.pdf100%  
+	    New File  		 3254419	S:\1 Jobs\NECA Subcontractor Contract & Collections Handbook (June 24 2025).pdf100%  
+	    New File  		     200	S:\1 Jobs\New Job Intake Form.url100%  
+	    New File  		   26624	S:\1 Jobs\Prelim Request.doc100%  
+	    New File  		   15360	S:\1 Jobs\Thumbs.db100%  
+	    New File  		   50762	S:\1 Jobs\Title 24 Solar Matrix.xlsx100%  
+	    New File  		  701107	S:\5 Financial and Accounting\20838Lifeform112020_wSOR.pdf  IRIS NYL.pdf100%  
+	    New File  		   14724	S:\5 Financial and Accounting\ABB Routing .pdf100%  
+	    New File  		   98873	S:\5 Financial and Accounting\Bond Capacity Letter.pdf100%  
+	    New File  		   22956	S:\5 Financial and Accounting\DE9C.xlsx100%  
+	    New File  		   15764	S:\5 Financial and Accounting\ESSCO- Wiring Instruction- Domestic (1).docx100%  
+	    New File  		51118212	S:\5 Financial and Accounting\GTR Trial Balance for ken #1.PDF100%  
+	    New File  		  188050	S:\5 Financial and Accounting\ICE Raids.pdf100%  
+	    New File  		 9700649	S:\5 Financial and Accounting\JAS number 36.pdf100%  
+	    New File  		      55	S:\5 Financial and Accounting\maxdesk.ini100%  
+	    New File  		   50093	S:\5 Financial and Accounting\PPThumbs.ptn100%  
+	    New File  		  279040	S:\5 Financial and Accounting\Refund Request SCIBEW.doc100%  
+	    New File  		   56863	S:\5 Financial and Accounting\Resale Certificate dated Nov 8 2017.pdf100%  
+	    New File  		   25600	S:\5 Financial and Accounting\Resale Certificate.doc100%  
+	    New File  		  270376	S:\5 Financial and Accounting\Retention schedule per Ken.pdf100%  
+	    New File  		  107992	S:\5 Financial and Accounting\Rev 2014 - W-9.pdf100%  
+	    New File  		   20437	S:\5 Financial and Accounting\Revised Motor Vehicle Report.pdf100%  
+	    New File  		 1277899	S:\5 Financial and Accounting\Sales and Use tax rules.pdf100%  
+	    New File  		   20992	S:\5 Financial and Accounting\Thumbs.db100%  
+	    New File  		     681	S:\6 Foundation Reports\AP.fqc100%  
+	    New File  		     555	S:\6 Foundation Reports\AR.fqc100%  
+	    New File  		     265	S:\6 Foundation Reports\layoff checks.fqc100%  
+	    New File  		    2880	S:\6 Foundation Reports\PayrollACH.txt100%  
+	    New File  		     342	S:\6 Foundation Reports\PO.fqc100%  
+	    New File  		     355	S:\6 Foundation Reports\project manager.fqc100%  
+	    New File  		     617	S:\6 Foundation Reports\Timecard Entry.fqc100%  
+	    New File  		   35174	S:\6 Foundation Reports\Timecardimport.csv100%  
+	    New File  		     663	S:\6 Foundation Reports\useful reports.fqc100%  
+	    New File  		   61952	S:\4 Safety\aa Job Hazard Analysis\AHA BLANK Template Form.doc100%  
+	    New File  		  133673	S:\4 Safety\aa Job Hazard Analysis\JHA_Hot Work.xlsx100%  
+	    New File  		  137285	S:\4 Safety\aa Job Hazard Analysis\JHA_MASTER SET.xlsx100%  
+	    New File  		   24846	S:\4 Safety\aa Job Hazard Analysis\JHA_Solar Arrays Removal.xlsx100%  
+	    New File  		  134719	S:\4 Safety\aa Job Hazard Analysis\JHA_Solar Arrays.xlsx100%  
+	    New File  		  133968	S:\4 Safety\aa Job Hazard Analysis\JHA_Terminations of Typical Cable.xlsx100%  
+	    New File  		  135259	S:\4 Safety\aa Job Hazard Analysis\JHA_Typical Conduit Runs.xlsx100%  
+	    New File  		  134106	S:\4 Safety\aa Job Hazard Analysis\JHA_Underground.xlsx100%  
+	    New File  		  133479	S:\4 Safety\aa Job Hazard Analysis\JHA_Wire Pulling.xlsx100%  
+	    New File  		  129621	S:\4 Safety\aa Job Hazard Analysis\JOB PLAN_Critical Lift Plan.xlsx100%  
+	    New File  		  130112	S:\4 Safety\aa Job Hazard Analysis\JOB PLAN_Fall Protection Plan.xlsx100%  
+	    New File  		     178	S:\4 Safety\Aerial Lift Training\._Aerial Lift Digital Guide100%  
+	    New File  		 1065318	S:\4 Safety\Aerial Lift Training\Aerial Lift training_2022.pdf100%  
+	    New File  		  225189	S:\4 Safety\Aerial Lift Training\[Untitled].pdf100%  
+	    New File  		  166531	S:\4 Safety\aaa Tailgate Meeting Records\Avoiding Distractions 2.26.18.pdf100%  
+	    New File  		     126	S:\4 Safety\aaa Tailgate Meeting Records\MaxDesk.ini100%  
+	    New File  		  365964	S:\4 Safety\aaa Tailgate Meeting Records\Meeting.pdf100%  
+	    New File  		  102262	S:\4 Safety\aaa Tailgate Meeting Records\PPThumbs.ptn100%  
+	    New File  		  244644	S:\4 Safety\aaa Tailgate Meeting Records\Silica Training 2.7.18.pdf100%  
+	    New File  		 9419728	S:\4 Safety\All Incidents\aaa Full Incident Paperwork for Clinic..2019.pdf100%  
+	    New File  		     190	S:\4 Safety\All Incidents\Essco Learning Report (Template).url100%  
+	    New File  		   96019	S:\4 Safety\All Incidents\form5020 Employer's First Report of Injury.pdf100%  
+	    New File  		  200704	S:\4 Safety\All Incidents\Incident Rate Analysis 2018.doc100%  
+	    New File  		   71720	S:\4 Safety\All Incidents\Incident Reports_Ridgecress Panel Drilling Safety Violation.pdf100%  
+	    New File  		      28	S:\4 Safety\All Incidents\MaxDesk.ini100%  
+	    New File  		      80	S:\4 Safety\All Incidents\State Comp Fund_File a Claim.url100%  
+	    New File  		   30208	S:\4 Safety\Archive\a Safety Ladder Checklist..2022.doc100%  
+	    New File  		   28759	S:\4 Safety\Archive\a Safety Lift Inspection Checklist..2022.docx100%  
+	    New File  		   79146	S:\4 Safety\Archive\aa Boltons 2022 ESSCO Team Chart.pdf 98%  100%  
+	    New File  		   11816	S:\4 Safety\Archive\aa Safety_ Weekly Tailgate Discussion Sheet.xlsx100%  
+	    New File  		   88076	S:\4 Safety\Archive\aaa ESSCO IIPP Nov 2022.pdf100%  
+	    New File  		  642964	S:\4 Safety\Archive\aaa ESSCO SAFTEY MANUAL Feb. 2012.pdf100%  
+	    New File  		 1155835	S:\4 Safety\Archive\aaa ESSCO SAFTEY MANUAL June 2019.pdf100%  
+	    New File  		  138792	S:\4 Safety\Archive\aaa IIPP June 2019.pdf100%  
+	    New File  		  163464	S:\4 Safety\Archive\Bolton DT 2021 Team Chart.pdf100%  
+	    New File  		   75264	S:\4 Safety\Archive\Code of Safe Practices.doc100%  
+	    New File  		  150745	S:\4 Safety\Archive\DWC Form 1 Worker's Comp Claim.pdf 99%  100%  
+	    New File  		  249512	S:\4 Safety\Archive\ESSCO Mail - Industrial Clinics -.pdf100%  
+	    New File  		   16636	S:\4 Safety\Archive\ESSCO Pandemic and Disaster Plan.docx100%  
+	    New File  		   44696	S:\4 Safety\Archive\ESSCO Quality Control Program.pdf100%  
+	    New File  		  259385	S:\4 Safety\Archive\ESSCO SAFTEY MANUAL may 2025.pdf100%  
+	    New File  		   24126	S:\4 Safety\Archive\Job Safety Analysis from 1085.xlsx100%  
+	    New File  		   18735	S:\4 Safety\Archive\Jobsite Emergency Location Options.xlsx100%  
+	    New File  		 3928610	S:\4 Safety\Archive\Jobsite Poster 2015.pdf100%  
+	    New File  		   20034	S:\4 Safety\Archive\Jobsite Poster Notice Form .pdf100%  
+	    New File  		  484004	S:\4 Safety\Archive\Ladder Safety Checklist 2025.pdf100%  
+	    New File  		   15991	S:\4 Safety\Archive\LAUSD Prequal Safety Letter.docx100%  
+	    New File  		  468759	S:\4 Safety\Archive\Lift Safety Checklist 2025.pdf100%  
+	    New File  		  253407	S:\4 Safety\Archive\Resp. and Silica Program May 2025.pdf100%  
+	    New File  		   21369	S:\4 Safety\Archive\Safety Commitee Contact List.xlsx100%  
+	    New File  		  555430	S:\4 Safety\Archive\Skylight Barrier_S.130953 - Calcs.pdf  0%  100%  
+	    New File  		   42770	S:\4 Safety\Archive\Terry Perkins Award_Solar_ESSCO_2015.pdf100%  
+	    New File  		  103034	S:\4 Safety\Archive\WC Mod Rate 2012.pdf100%  
+	    New File  		   67675	S:\4 Safety\Archive\WC Notice to us-Re injuries.pdf100%  
+	    New File  		   49377	S:\4 Safety\Archive\Whistle Blowers.pdf100%  
+	    New File  		   74794	S:\4 Safety\Cal OSHA\2023 OSHA 300A Signed.pdf100%  
+	    New File  		  493383	S:\4 Safety\Cal OSHA\CALOSHA 8CCR3202 IIPP.pdf 99%  100%  
+	    New File  		   53885	S:\4 Safety\Cal OSHA\CalOSHA Follow Up Servey Aug 2014.pdf100%  
+	    New File  		  785771	S:\4 Safety\Cal OSHA\ConstGuideOnline.pdf100%  
+	    New File  		   79872	S:\4 Safety\Cal OSHA\Copy of CalOSHARecordkeepForms excell.xls100%  
+	    New File  		   69053	S:\4 Safety\Cal OSHA\ITA _ Occupational Safety and Health Administration.pdf100%  
+	    New File  		  136417	S:\4 Safety\Cal OSHA\LB Fire Stn #20 PV Proposal_8.27.20.pdf100%  
+	    New File  		     658	S:\4 Safety\Cal OSHA\maxdesk.ini100%  
+	    New File  		  941515	S:\4 Safety\Cal OSHA\new-osha300form1-1-04.pdf100%  
+	    New File  		  711692	S:\4 Safety\Cal OSHA\Order 16-2001.pdf100%  
+	    New File  		   81197	S:\4 Safety\Cal OSHA\OSHA 300 2015.pdf100%  
+	    New File  		   81197	S:\4 Safety\Cal OSHA\OSHA 300 2016.pdf100%  
+	    New File  		   81552	S:\4 Safety\Cal OSHA\OSHA 300 2017.pdf100%  
+	    New File  		   81141	S:\4 Safety\Cal OSHA\OSHA 300 2018.pdf100%  
+	    New File  		   81558	S:\4 Safety\Cal OSHA\OSHA 300 2019.pdf100%  
+	    New File  		  179517	S:\4 Safety\Cal OSHA\OSHA 300 2020.pdf100%  
+	    New File  		  171771	S:\4 Safety\Cal OSHA\OSHA 300 2021.pdf100%  
+	    New File  		   81135	S:\4 Safety\Cal OSHA\OSHA 300 2022.pdf100%  
+	    New File  		   81135	S:\4 Safety\Cal OSHA\OSHA 300 2023100%  
+	    New File  		   83240	S:\4 Safety\Cal OSHA\OSHA 300 2023.pdf100%  
+	    New File  		   37009	S:\4 Safety\Cal OSHA\osha 300 signed_2022.pdf100%  
+	    New File  		  286470	S:\4 Safety\Cal OSHA\OSHA 300A 2015 2016 2017.pdf100%  
+	    New File  		  187507	S:\4 Safety\Cal OSHA\OSHA 300A 2021.pdf100%  
+	    New File  		  305107	S:\4 Safety\Cal OSHA\OSHA's Form 300.pdf100%  
+	    New File  		  213813	S:\4 Safety\Cal OSHA\OSHA's Form 300A.pdf100%  
+	    New File  		  133738	S:\4 Safety\Cal OSHA\OSHA's Form 301.pdf100%  
+	    New File  		   96109	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2015.pdf100%  
+	    New File  		   95748	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2016.pdf100%  
+	    New File  		   95751	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2017.pdf100%  
+	    New File  		  126317	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2018.pdf100%  
+	    New File  		   62009	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2019.pdf100%  
+	    New File  		   98203	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2020.pdf100%  
+	    New File  		   91147	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2021.pdf100%  
+	    New File  		   91074	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2022.pdf100%  
+	    New File  		   92677	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2023.pdf100%  
+	    New File  		  119868	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms 300A 2024.pdf100%  
+	    New File  		  159744	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms.xls100%  
+	    New File  		  166400	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2007.xls100%  
+	    New File  		  166912	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2008.xls100%  
+	    New File  		  168448	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2009.xls100%  
+	    New File  		  173056	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2010.xls100%  
+	    New File  		  167936	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2011.xls100%  
+	    New File  		   95592	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2012.xlsx100%  
+	    New File  		   95570	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2013.xlsx100%  
+	    New File  		   96154	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2014.xlsx100%  
+	    New File  		   96216	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2015.xlsx100%  
+	    New File  		   96200	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2016.xlsx100%  
+	    New File  		   95801	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2017.xlsx100%  
+	    New File  		   95775	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2018.xlsx100%  
+	    New File  		   97981	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2019.xlsx100%  
+	    New File  		   94035	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2020.xlsx100%  
+	    New File  		   93985	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2021.xlsx100%  
+	    New File  		   97883	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2022.xlsx100%  
+	    New File  		   90321	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2023.xlsx100%  
+	    New File  		  201147	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2024.pdf100%  
+	    New File  		   90813	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2024.xlsx100%  
+	    New File  		   90824	S:\4 Safety\Cal OSHA\OSHArecordkeepingforms2025.xlsx100%  
+	    New File  		  101866	S:\4 Safety\Cal OSHA\PPThumbs.ptn100%  
+	    New File  		  949804	S:\4 Safety\Cal OSHA\Required Posting.pdf  0%  100%  
+	    New File  		 1465468	S:\4 Safety\Cal OSHA\respiratory program.pdf 99%  100%  
+	    New File  		   81137	S:\4 Safety\Cal OSHA\temp.pdf100%  
+	    New File  		   82432	S:\4 Safety\ESSCO Safety Manual\aaa ESSCO Code of Safe Practices_2025.doc100%  
+	    New File  		   12334	S:\4 Safety\ESSCO Safety Manual\aaa ESSCO Quality Control Program.docx100%  
+	    New File  		 2923950	S:\4 Safety\ESSCO Safety Manual\aaa ESSCO SAFTEY MANUAL May 2025.docx100%  
+	    New File  		    1720	S:\4 Safety\ESSCO Safety Manual\maxdesk.ini100%  
+	    New File  		  204248	S:\4 Safety\ESSCO Safety Manual\PPThumbs.ptn100%  
+	    New File  		  122059	S:\4 Safety\First Aid Kits\California Code of Regulations, Title 8, Section 1512. Emergency Medical Services..pdf100%  
+	    New File  		  104988	S:\4 Safety\First Aid Kits\First Aid Guide.pdf100%  
+	    New File  		   14180	S:\4 Safety\First Aid Kits\First Aid Kit Material List.xlsx100%  
+	    New File  		     206	S:\4 Safety\First Aid Kits\MaxDesk.ini100%  
+	    New File  		  102850	S:\4 Safety\First Aid Kits\PPThumbs.ptn100%  
+	    New File  		  323096	S:\4 Safety\From Allen Sloan and LMCC\Allen's Template 8-29-13 Heat Illness Prevention Policy.docx100%  
+	    New File  		  168448	S:\4 Safety\From Allen Sloan and LMCC\CalOSHA-1A_ver091808-1[1].doc100%  
+	    New File  		   74240	S:\4 Safety\From Allen Sloan and LMCC\Document_Request1AY_072308[1].doc100%  
+	    New File  		     340	S:\4 Safety\From Allen Sloan and LMCC\maxdesk.ini100%  
+	    New File  		   70512	S:\4 Safety\From Allen Sloan and LMCC\NFPA-70E-Compliance-Guide.pdf100%  
+	    New File  		     276	S:\4 Safety\From Allen Sloan and LMCC\PPThumbs.ptn100%  
+	    New File  		 4162050	S:\4 Safety\From Allen Sloan and LMCC\safety_may_2022.pdf100%  
+	    New File  		   40960	S:\4 Safety\From Allen Sloan and LMCC\training matrix.xls100%  
+	    New File  		 4812927	S:\4 Safety\JHAs\SAMPLE_ ILBE - Job Hazard Analyses.pdf100%  
+	    New File  		  307247	S:\4 Safety\LOTO_Hot Work\aaaHot Work Permit.pdf100%  
+	    New File  		  191838	S:\4 Safety\LOTO_Hot Work\aaaHot Work Permit.xlsx100%  
+	    New File  		   19749	S:\4 Safety\LOTO_Hot Work\ESSCO lockout tagout.docx100%  
+	    New File  		   13807	S:\4 Safety\LOTO_Hot Work\Hot Permit Opperations.docx100%  
+	    New File  		   33949	S:\4 Safety\LOTO_Hot Work\Hot Permit Opperations.pdf100%  
+	    New File  		     186	S:\4 Safety\LOTO_Hot Work\maxdesk.ini100%  
+	    New File  		  151491	S:\4 Safety\LOTO_Hot Work\PPThumbs.ptn100%  
+	    New File  		  296756	S:\4 Safety\NFPA 70E\OSHA CFR 29 CFR Part 1910.pdf100%  
+	    New File  		  333887	S:\4 Safety\NFPA 70E\OSHA-2016-0013-0001.pdf 99%  100%  
+	    New File  		  102007	S:\4 Safety\ON-SITE\7_Injury Poster_email.pdf100%  
+	    New File  		  241050	S:\4 Safety\ON-SITE\9.08.09 brochure.pdf100%  
+	    New File  		   23061	S:\4 Safety\ON-SITE\INJURY PROTOCOL OSHS.pdf100%  
+	    New File  		 6481504	S:\4 Safety\ON-SITE\OSHS Brochure.pdf100%  
+	    New File  		  207885	S:\4 Safety\Safety plans in PDF files\Code of Safe Practices.pdf100%  
+	    New File  		  163188	S:\4 Safety\Safety plans in PDF files\Fall Protection Program Ty's notes.pdf100%  
+	    New File  		  119883	S:\4 Safety\Safety plans in PDF files\Flagging Program Ty's Notes.pdf100%  
+	    New File  		  115621	S:\4 Safety\Safety plans in PDF files\Lifting and Material HandlingFix.pdf100%  
+	    New File  		  133399	S:\4 Safety\Safety plans in PDF files\PPE.pdf100%  
+	    New File  		  129593	S:\4 Safety\Safety plans in PDF files\Scaffold Program.pdf100%  
+	    New File  		   74146	S:\4 Safety\Safety plans in PDF files\Vehicle Safety and Use.pdf100%  
+	    New File  		   12905	S:\4 Safety\SDS\1aaa Cover Sheet.docx100%  
+	    New File  		     736	S:\4 Safety\SDS\MaxDesk.ini100%  
+	    New File  		 1013262	S:\4 Safety\SDS\PPThumbs.ptn100%  
+	    New File  		   19738	S:\4 Safety\SDS\SDS Table of Contents.docx100%  
+	    New File  		  220196	S:\4 Safety\SDS\Underground Wire Connectors.pdf100%  
+	    New File  		       0	S:\4 Safety\Security Videos and Pictures\alarm.mp4100%  
+	    New File  		       0	S:\4 Safety\Security Videos and Pictures\[2020-03-31T013942]-Office-Motion.mp4100%  
+	    New File  		   15364	S:\2 Bids\1 Current Bids\.DS_Store100%  
+	    New File  		     515	S:\2 Bids\1 Current Bids\Local Disk (C) - Shortcut.lnk100%  
+	    New File  		     326	S:\2 Bids\1 Current Bids\maxdesk.ini100%  
+	    New File  		  813416	S:\2 Bids\1 Current Bids\PPThumbs.ptn  0%  100%  
+	    New File  		  858390	S:\2 Bids\1 Current Bids\Pre-Qual. for GC.pdf100%  
+	    New File  		   36252	S:\2 Bids\1 Current Bids\Pricing Graph.xlsx100%  
+	    New File  		   47102	S:\2 Bids\1 Current Bids\Safe-Off for Roofing Co..pdf100%  
+	    New File  		 1533883	S:\2 Bids\1 Current Bids\S_00000000 2_Chino IB_Division 01 General Requirements 220111.pdf100%  
+	    New File  		  464896	S:\2 Bids\1 Current Bids\Thumbs.db100%  
+	    New File  		    6148	S:\2 Bids\3 Estimate Templates\.DS_Store100%  
+	    New File  		   43008	S:\2 Bids\3 Estimate Templates\Bond Request Form.doc100%  
+	    New File  		   11590	S:\2 Bids\3 Estimate Templates\Estimating Process List.xlsx100%  
+	    New File  		  420352	S:\2 Bids\3 Estimate Templates\LARP Palms Rec Center Proposal .doc100%  
+	    New File  		  416768	S:\2 Bids\3 Estimate Templates\LARP Proposal 2023.doc100%  
+	    New File  		  116736	S:\2 Bids\3 Estimate Templates\Maintenance Solar Proposal_2026.doc100%  
+	    New File  		  157371	S:\2 Bids\3 Estimate Templates\PPThumbs.ptn100%  
+	    New File  		   18558	S:\2 Bids\3 Estimate Templates\SBA Approved.pdf100%  
+	    New File  		  120320	S:\2 Bids\3 Estimate Templates\Standard Proposal (Updated 8.27.25).doc 99%  100%  
+	    New File  		  120320	S:\2 Bids\3 Estimate Templates\Standard Solar Proposal_2025.doc100%  
+	    New File  		  152268	S:\2 Bids\3 Estimate Templates\T&B Pricing 3.4.13.xlsx100%  
+	    New File  		   58293	S:\2 Bids\3 Estimate Templates\takeoff template.xlsx100%  
+	    New File  		    6144	S:\2 Bids\3 Estimate Templates\Thumbs.db100%  
+	    New File  		   50582	S:\2 Bids\Accubid Bids\Default.es16100%  
+	    New File  		   44899	S:\2 Bids\Accubid Bids\Franklin Export.csv100%  
+	    New File  		   20557	S:\2 Bids\Accubid Bids\Franklin Export.xlsx100%  
+	    New File  		   50950	S:\2 Bids\Accubid Bids\R1.es16100%  
+	    New File  		  271206	S:\2 Bids\Bid Lists\8.17.20 Bid List.jpg100%  
+	    New File  		    9216	S:\2 Bids\Bid Lists\Thumbs.db100%  
+	    New File  		  479600	S:\2 Bids\Bid Results\Bid Results - Cheviot Hills Recreation Center - Prop K Sports Lighting Improvement.pdf100%  
+	    New File  		   18174	S:\2 Bids\Bookmarks\bookmarks_10_10_25.html100%  
+	    New File  		   38400	S:\2 Bids\CORP PROF\10 Largest Projects 2015-2018.doc100%  
+	    New File  		  229888	S:\2 Bids\CORP PROF\BHHS Reference List.doc100%  
+	    New File  		   12382	S:\2 Bids\CORP PROF\Boyd SolarBoyd Solar.docx100%  
+	    New File  		   72934	S:\2 Bids\CORP PROF\CA Statement of Information 2011.pdf100%  
+	    New File  		   72251	S:\2 Bids\CORP PROF\CA Statement of Information.pdf100%  
+	    New File  		   15109	S:\2 Bids\CORP PROF\CLSB Pocket License.pdf100%  
+	    New File  		   34304	S:\2 Bids\CORP PROF\Community College District Projects 2015-12018.doc100%  
+	    New File  		  222208	S:\2 Bids\CORP PROF\COPRPROF Spring 08.doc100%  
+	    New File  		  184832	S:\2 Bids\CORP PROF\COPRPROF Spring 2011 short form.doc100%  
+	    New File  		  363283	S:\2 Bids\CORP PROF\COPRPROF Spring 2011 short form.pdf100%  
+	    New File  		  227840	S:\2 Bids\CORP PROF\COPRPROF Spring 2011.doc100%  
+	    New File  		  261986	S:\2 Bids\CORP PROF\COPRPROF Spring 2011.pdf100%  
+	    New File  		  242688	S:\2 Bids\CORP PROF\COPRPROF Spring 2014.doc100%  
+	    New File  		  239616	S:\2 Bids\CORP PROF\COPRPROF Summer 2013.doc100%  
+	    New File  		  227840	S:\2 Bids\CORP PROF\COPRPROF Winter 2011.doc100%  
+	    New File  		  239104	S:\2 Bids\CORP PROF\COPRPROF Winter 2014.doc100%  
+	    New File  		   67293	S:\2 Bids\CORP PROF\Corp Resolution 2013.pdf100%  
+	    New File  		   36246	S:\2 Bids\CORP PROF\Corp Resolution.pdf100%  
+	    New File  		  177152	S:\2 Bids\CORP PROF\CORPPROF Summerr 2009.doc100%  
+	    New File  		  182784	S:\2 Bids\CORP PROF\CORPPROF Winter 2009.doc100%  
+	    New File  		  179200	S:\2 Bids\CORP PROF\ESSCO PROF July 2016.doc100%  
+	    New File  		  369101	S:\2 Bids\CORP PROF\ESSCO PROF March 2019.pdf100%  
+	    New File  		  158208	S:\2 Bids\CORP PROF\ESSCO PROF Spring 2014.doc100%  
+	    New File  		  183808	S:\2 Bids\CORP PROF\ESSCO PROF Spring 2016.doc100%  
+	    New File  		  182784	S:\2 Bids\CORP PROF\ESSCO PROF Spring 2017.doc100%  
+	    New File  		  183296	S:\2 Bids\CORP PROF\ESSCO PROF Winter 2016.doc100%  
+	    New File  		  234728	S:\2 Bids\CORP PROF\ESSCO PROF Winter 2016.pdf100%  
+	    New File  		  179200	S:\2 Bids\CORP PROF\ESSCO PROF Winter 2017.doc100%  
+	    New File  		18496348	S:\2 Bids\CORP PROF\ESSCO PV Flier References.pdf 68%   79%   90%  100%  
+	    New File  		   15317	S:\2 Bids\CORP PROF\Jobs in Progress 12 31 18.docx100%  
+	    New File  		  228352	S:\2 Bids\CORP PROF\List for TCC July 2011.doc100%  
+	    New File  		     850	S:\2 Bids\CORP PROF\maxdesk.ini100%  
+	    New File  		 1013536	S:\2 Bids\CORP PROF\PPThumbs.ptn100%  
+	    New File  		   90624	S:\2 Bids\CORP PROF\Public School Contracts 2000 2014.doc100%  
+	    New File  		   92672	S:\2 Bids\CORP PROF\Public School Contracts 2000 2015.doc100%  
+	    New File  		   57856	S:\2 Bids\CORP PROF\Public School Contracts 2006 2016.doc100%  
+	    New File  		   99393	S:\2 Bids\CORP PROF\Public School Contracts 2006 2016.pdf100%  
+	    New File  		    1280	S:\2 Bids\CORP PROF\Public Works Contractor Search Results.pdf100%  
+	    New File  		   97792	S:\2 Bids\CORP PROF\Public Worksl Contracts 2000 2017.doc100%  
+	    New File  		   71168	S:\2 Bids\CORP PROF\Recent Completed Contracts (over $100,000) revised 05-2019.doc100%  
+	    New File  		   53760	S:\2 Bids\CORP PROF\Recent Contracts 2017.doc100%  
+	    New File  		  114550	S:\2 Bids\CORP PROF\Recent Contracts 2017.pdf100%  
+	    New File  		   60416	S:\2 Bids\CORP PROF\Recent Contracts 2018.doc100%  
+	    New File  		   38912	S:\2 Bids\CORP PROF\Recent School Contracts 2014-2019.doc100%  
+	    New File  		   85636	S:\2 Bids\CORP PROF\Recent School Contracts 2014-2019.pdf100%  
+	    New File  		   12674	S:\2 Bids\CORP PROF\Solar Jobs.docx100%  
+	    New File  		   41984	S:\2 Bids\CORP PROF\Thumbs.db100%  
+	    New File  		     162	S:\2 Bids\CORP PROF\~$PRPROF Spring 2011.doc100%  
+	    New File  		     162	S:\2 Bids\CORP PROF\~$PRPROF Summer 2013.doc100%  
+	    New File  		   97792	S:\2 Bids\IBEW Rates\District 9 Wage  Benefit  (Revised 12-01-2015) With CA Sick Leave.xls100%  
+	    New File  		    9720	S:\2 Bids\IBEW Rates\Union Reports Monthly.xlsx100%  
+	    New File  		27329520	S:\2 Bids\NECA Manual of Labor Units\MLU 2015-16.pdf 99%  100%  
+	    New File  		  208838	S:\2 Bids\Rates for Lozano for Trenching\Rate Sheet..pdf100%  
+	    New File  		   91886	S:\2 Bids\Prequalifications\06-29-2022.ModAlert.Todd Jackson.C.161348.pdf100%  
+	    New File  		  180466	S:\2 Bids\Prequalifications\2023 Mod Rate.pdf100%  
+	    New File  		  247535	S:\2 Bids\Prequalifications\2023 XMOD - 79%.pdf100%  
+	    New File  		    9385	S:\2 Bids\Prequalifications\Average Contract Amt 2011-2021.xlsx100%  
+	    New File  		   66002	S:\2 Bids\Prequalifications\Bond rate 2017.pdf100%  
+	    New File  		     253	S:\2 Bids\Prequalifications\Bond rate explanation.txt100%  
+	    New File  		 6239509	S:\2 Bids\Prequalifications\Bondability Ltr.pdf100%  
+	    New File  		   17697	S:\2 Bids\Prequalifications\Cert of Ins 2023.pdf100%  
+	    New File  		  898048	S:\2 Bids\Prequalifications\Certificate Req PUSD.doc100%  
+	    New File  		   12281	S:\2 Bids\Prequalifications\Claim Koos Manufacturing.docx100%  
+	    New File  		   12456	S:\2 Bids\Prequalifications\Claim Koos.docx100%  
+	    New File  		   12650	S:\2 Bids\Prequalifications\Claim Summary Clausen Hall.docx100%  
+	    New File  		  645143	S:\2 Bids\Prequalifications\Claim summary Clausen Hall.jpg100%  
+	    New File  		   67846	S:\2 Bids\Prequalifications\Claim Summary for Clausen Hall.pdf100%  
+	    New File  		   51779	S:\2 Bids\Prequalifications\Claims 1985 +.pdf100%  
+	    New File  		   26415	S:\2 Bids\Prequalifications\Claims 1994 +.pdf100%  
+	    New File  		   82654	S:\2 Bids\Prequalifications\CSLB 5-31-2021.pdf100%  
+	    New File  		   57143	S:\2 Bids\Prequalifications\DGS Small Business Certification.pdf100%  
+	    New File  		    1296	S:\2 Bids\Prequalifications\Dir Registration 2018.pdf 91%  100%  
+	    New File  		    1392	S:\2 Bids\Prequalifications\DIR Registration 2019.pdf100%  
+	    New File  		  147663	S:\2 Bids\Prequalifications\DIR Registration 2020.pdf100%  
+	    New File  		  253017	S:\2 Bids\Prequalifications\DIR Registration 2022-2025.pdf100%  
+	    New File  		   86172	S:\2 Bids\Prequalifications\DIR Registrations 06 30 22.pdf100%  
+	    New File  		   72689	S:\2 Bids\Prequalifications\DIR Reregistration 2020-22.pdf100%  
+	    New File  		   10981	S:\2 Bids\Prequalifications\Disclaimer for Financials.docx100%  
+	    New File  		  168033	S:\2 Bids\Prequalifications\ESSCO EMR Letter 2019.pdf100%  
+	    New File  		  159782	S:\2 Bids\Prequalifications\ESSCO Financial Statements 6-30-2020.pdf100%  
+	    New File  		  169607	S:\2 Bids\Prequalifications\ESSCO Financial Statements 6-30-2022.pdf100%  
+	    New File  		   11828	S:\2 Bids\Prequalifications\ESSCO LR 16-17 WC State Fund 6601070 v 6-10-19.pdf100%  
+	    New File  		   11363	S:\2 Bids\Prequalifications\ESSCO LR 16-17 WC State Fund 7601070 v 6-10-19.pdf100%  
+	    New File  		   11365	S:\2 Bids\Prequalifications\ESSCO LR 17-18 WC State Fund 7601070 v 6-10-19.pdf100%  
+	    New File  		   11364	S:\2 Bids\Prequalifications\ESSCO LR 17-8 WC State Fund 6601070 v 6-10-19.pdf100%  
+	    New File  		   11369	S:\2 Bids\Prequalifications\ESSCO LR 18-19 WC State Fund 6601070 v 6-10-19.pdf100%  
+	    New File  		   11367	S:\2 Bids\Prequalifications\ESSCO LR 18-19 WC State Fund 7601070 v 6-10-19.pdf100%  
+	    New File  		   10410	S:\2 Bids\Prequalifications\ESSCO Ownership.docx100%  
+	    New File  		   11517	S:\2 Bids\Prequalifications\ESSCO Ownership.pdf100%  
+	    New File  		  167337	S:\2 Bids\Prequalifications\ESSCO Proof of WC Coverage 2022.pdf100%  
+	    New File  		   35533	S:\2 Bids\Prequalifications\ESSCO Referral Journal.xlsx100%  
+	    New File  		   11002	S:\2 Bids\Prequalifications\Financial Cover.docx100%  
+	    New File  		   27136	S:\2 Bids\Prequalifications\Larrick Resume.doc100%  
+	    New File  		  960507	S:\2 Bids\Prequalifications\Letter of Bondability Downey.pdf100%  
+	    New File  		   42739	S:\2 Bids\Prequalifications\Line of Credit Letter 1 31 19.pdf100%  
+	    New File  		    4930	S:\2 Bids\Prequalifications\maxdesk.ini100%  
+	    New File  		   91833	S:\2 Bids\Prequalifications\MOD Rate 06 01 21.pdf100%  
+	    New File  		  156126	S:\2 Bids\Prequalifications\Mod Rate 2015-16.pdf100%  
+	    New File  		  132718	S:\2 Bids\Prequalifications\Mod rate 2016-2017.pdf100%  
+	    New File  		   88494	S:\2 Bids\Prequalifications\MOD Rate 2018 06-07-2018.ModAlert.Todd Jackson.C.161348.pdf100%  
+	    New File  		  168033	S:\2 Bids\Prequalifications\MOD Rate 2019.pdf100%  
+	    New File  		   87952	S:\2 Bids\Prequalifications\MOD RATE 2020.pdf100%  
+	    New File  		   95872	S:\2 Bids\Prequalifications\OSAH Form 300A 2016.pdf100%  
+	    New File  		   95870	S:\2 Bids\Prequalifications\OSHA Form 300A 2014.pdf100%  
+	    New File  		   81574	S:\2 Bids\Prequalifications\OSHA Form 300A 2015.pdf100%  
+	    New File  		 5176531	S:\2 Bids\Prequalifications\PPThumbs.ptn100%  
+	    New File  		 3180004	S:\2 Bids\Prequalifications\PQBids - Template.pdf100%  
+	    New File  		  248051	S:\2 Bids\Prequalifications\prequal essco stats.pdf100%  
+	    New File  		   11415	S:\2 Bids\Prequalifications\Prequal expiration date journal.xlsx100%  
+	    New File  		   10278	S:\2 Bids\Prequalifications\Prime Sub Journal for ESSCO.xlsx100%  
+	    New File  		    1296	S:\2 Bids\Prequalifications\Public Works Contractor Registration 171.pdf 98%  100%  
+	    New File  		    1296	S:\2 Bids\Prequalifications\Public Works Contractor Search Results (2).pdf100%  
+	    New File  		   72308	S:\2 Bids\Prequalifications\Quality Bidders 2017.pdf100%  
+	    New File  		   71168	S:\2 Bids\Prequalifications\Recent Completed Contracts (over $100,000) revised 05-2019.doc100%  
+	    New File  		   99253	S:\2 Bids\Prequalifications\Reference Form - Ridgecrest.pdf100%  
+	    New File  		  112704	S:\2 Bids\Prequalifications\Reference Form - Santa Monica College Solar.pdf100%  
+	    New File  		  579511	S:\2 Bids\Prequalifications\Reference Form 1090 Addams ES.pdf100%  
+	    New File  		  577719	S:\2 Bids\Prequalifications\Reference Form 1099 Fairvalley HS.pdf100%  
+	    New File  		  507536	S:\2 Bids\Prequalifications\Reference Form 1100 Clausen Hall.pdf100%  
+	    New File  		  563667	S:\2 Bids\Prequalifications\Reference Form 1125 Cox Manheim Pkg Lot Lts.pdf100%  
+	    New File  		  583898	S:\2 Bids\Prequalifications\Reference Form 1126 Koos Solar.pdf100%  
+	    New File  		  579750	S:\2 Bids\Prequalifications\Reference Form 1134 Greek Theatre.pdf100%  
+	    New File  		   40888	S:\2 Bids\Prequalifications\Reference Form 1136 Glendora USD LIghting Eff.pdf100%  
+	    New File  		  574228	S:\2 Bids\Prequalifications\Reference Form LA Parks & Rec.pdf100%  
+	    New File  		   33938	S:\2 Bids\Prequalifications\Reference form LEUSD.pdf100%  
+	    New File  		  575940	S:\2 Bids\Prequalifications\Reference Form OCEA.pdf100%  
+	    New File  		  578229	S:\2 Bids\Prequalifications\Reference Form San Gabriel Energy Upgrades.pdf100%  
+	    New File  		   52154	S:\2 Bids\Prequalifications\Reference Form.pdf100%  
+	    New File  		   30128	S:\2 Bids\Prequalifications\Reference sheet 1131 St Lucy's.pdf100%  
+	    New File  		  730760	S:\2 Bids\Prequalifications\Rialto USD - Ledesma Meyer.pdf  0%  100%  
+	    New File  		  378059	S:\2 Bids\Prequalifications\Rudolph and Sletton Prequal.pdf100%  
+	    New File  		   11579	S:\2 Bids\Prequalifications\SB 2018 to 2021 05 31.docx100%  
+	    New File  		   41692	S:\2 Bids\Prequalifications\SBE Certification 2011-18.pdf100%  
+	    New File  		   50701	S:\2 Bids\Prequalifications\SBE Certification 2020.pdf100%  
+	    New File  		   27136	S:\2 Bids\Prequalifications\School Districts prequalified for.doc100%  
+	    New File  		   30720	S:\2 Bids\Prequalifications\Sean Lazarian Resume.doc100%  
+	    New File  		   50701	S:\2 Bids\Prequalifications\Small Business Certification 2020.pdf100%  
+	    New File  		   28672	S:\2 Bids\Prequalifications\SRL Resume.doc100%  
+	    New File  		   31232	S:\2 Bids\Prequalifications\T  Lazarian Resume.doc100%  
+	    New File  		   40448	S:\2 Bids\Prequalifications\Thumbs.db100%  
+	    New File  		  146007	S:\2 Bids\Prequalifications\Todd's WC coverage ltr for 5 yrs.pdf100%  
+	    New File  		  619161	S:\2 Bids\Prequalifications\Travellers Letter of Bondability-LAUSD.pdf100%  
+	    New File  		  159942	S:\2 Bids\Prequalifications\W9 2018.pdf100%  
+	    New File  		  159942	S:\2 Bids\Prequalifications\W9 2019.pdf100%  
+	    New File  		   66746	S:\2 Bids\Prequalifications\wc confirmation 5 years 2017.pdf100%  
+	    New File  		   30709	S:\2 Bids\Prequalifications\WIP at 04 30 15.pdf100%  
+	    New File  		  683989	S:\2 Bids\Prequalifications\Wm S Hart High School Prequal_Diff.pdf100%  
+	    New File  		   43611	S:\2 Bids\Robburt's Template\End Sheet to Jan 25, 2026.xlsx100%  
+	    New File  		  190795	S:\2 Bids\Robburt's Template\ESSCO Standard Proposal_Form_rhb 2025.docx100%  
+	    New File  		  326899	S:\2 Bids\Recommendation for Conner Comm\Echo Park Contractor Evaluation Non-LAUSD Projects 2.pdf 99%  100%  
+	    New File  		  326740	S:\2 Bids\Recommendation for Conner Comm\MacArthur Park Contractor Evaluation Non-LAUSD Projects 1.pdf100%  
+	    New File  		 5704011	S:\2 Bids\Solar PV Financing\District IX - RS Final.pdf100%  
+	    New File  		  353716	S:\2 Bids\Solar PV Financing\Example - Solar Financing Quote.pdf100%  
+	    New File  		  188363	S:\3 Operations\1 Employees\11 CWCE 2018-12.pdf100%  
+	    New File  		  221231	S:\3 Operations\1 Employees\11 Inside 2019-08.pdf100%  
+	    New File  		   18735	S:\3 Operations\1 Employees\1A Manpower List.xlsx100%  
+	    New File  		   20724	S:\3 Operations\1 Employees\Cards_for_Employees_03 19 2020 (1).docx100%  
+	    New File  		   14193	S:\3 Operations\1 Employees\Cell Number Spreadsheet.xlsx100%  
+	    New File  		   10375	S:\3 Operations\1 Employees\Employee Phone Numbers.xlsx100%  
+	    New File  		  913600	S:\3 Operations\1 Employees\ESSCO Evals_10.16.20.pdf100%  
+	    New File  		  498761	S:\3 Operations\1 Employees\ESSCO MANPOWER REQUEST 11.pdf100%  
+	    New File  		  183184	S:\3 Operations\1 Employees\ESSCO MANPOWER REQUEST 477.pdf100%  
+	    New File  		  183089	S:\3 Operations\1 Employees\LACCD Zip Codes.pdf100%  
+	    New File  		 1005871	S:\3 Operations\1 Employees\LAUSD Zip Codes.pdf100%  
+	    New File  		  303480	S:\3 Operations\1 Employees\LB Zip Codes.pdf100%  
+	    New File  		  148762	S:\3 Operations\1 Employees\Long Beach Zip Codes.pdf100%  
+	    New File  		     611	S:\3 Operations\1 Employees\maxdesk.ini100%  
+	    New File  		 1350809	S:\3 Operations\1 Employees\Pierce College Zip Codes.pdf100%  
+	    New File  		  558248	S:\3 Operations\1 Employees\PPThumbs.ptn100%  
+	    New File  		 1987329	S:\3 Operations\1 Employees\Termination Notice_11.pdf100%  
+	    New File  		   51712	S:\3 Operations\1 Employees\Thumbs.db100%  
+	    New File  		  997264	S:\3 Operations\3 Insurance  Liability, auto & Property\11-12EPLI.pdf100%  
+	    New File  		  360693	S:\3 Operations\3 Insurance  Liability, auto & Property\12-13EPLI.pdf100%  
+	    New File  		    9936	S:\3 Operations\3 Insurance  Liability, auto & Property\2012 2013 Audit.xlsx100%  
+	    New File  		   76125	S:\3 Operations\3 Insurance  Liability, auto & Property\2014 GL Audit.pdf100%  
+	    New File  		  278872	S:\3 Operations\3 Insurance  Liability, auto & Property\2020 Ex-Mod WCIRB Worksheet.pdf100%  
+	    New File  		  378599	S:\3 Operations\3 Insurance  Liability, auto & Property\ARDA Brochure_inside panel with bleed (1) (1).pdf100%  
+	    New File  		  192127	S:\3 Operations\3 Insurance  Liability, auto & Property\audit request for appmt.pdf100%  
+	    New File  		   33991	S:\3 Operations\3 Insurance  Liability, auto & Property\Audit results 2013.pdf100%  
+	    New File  		  580031	S:\3 Operations\3 Insurance  Liability, auto & Property\Auto Accident Tri-Fold 2018.pdf 99%  100%  
+	    New File  		   16360	S:\3 Operations\3 Insurance  Liability, auto & Property\AutoIDCards 2015 2016.pdf100%  
+	    New File  		   14970	S:\3 Operations\3 Insurance  Liability, auto & Property\AutoIDCards 2016 2017 [2727230].pdf100%  
+	    New File  		   33011	S:\3 Operations\3 Insurance  Liability, auto & Property\Autolossruns.pdf100%  
+	    New File  		  163464	S:\3 Operations\3 Insurance  Liability, auto & Property\Boktib DT 2021 Team Chart.pdf100%  
+	    New File  		  233556	S:\3 Operations\3 Insurance  Liability, auto & Property\Cert of Ins Supp for Diane Watson 2014 2015.pdf100%  
+	    New File  		   11236	S:\3 Operations\3 Insurance  Liability, auto & Property\Cert Renewals 2010.csv100%  
+	    New File  		   27310	S:\3 Operations\3 Insurance  Liability, auto & Property\cert resale_11.2022.pdf100%  
+	    New File  		   29995	S:\3 Operations\3 Insurance  Liability, auto & Property\Chris Afsharian dmv.pdf100%  
+	    New File  		  798715	S:\3 Operations\3 Insurance  Liability, auto & Property\ContEnviroProf 2013.pdf100%  
+	    New File  		  763869	S:\3 Operations\3 Insurance  Liability, auto & Property\ContEnviroProf.pdf100%  
+	    New File  		   34458	S:\3 Operations\3 Insurance  Liability, auto & Property\DMV Liability release electronically for Tiltmaster .pdf100%  
+	    New File  		  112974	S:\3 Operations\3 Insurance  Liability, auto & Property\DMV Liability release for Tiltmaster.pdf100%  
+	    New File  		   14166	S:\3 Operations\3 Insurance  Liability, auto & Property\Document (3).pdf100%  
+	    New File  		   13808	S:\3 Operations\3 Insurance  Liability, auto & Property\Document.pdf100%  
+	    New File  		   13652	S:\3 Operations\3 Insurance  Liability, auto & Property\Driver request Ben.pdf100%  
+	    New File  		    6281	S:\3 Operations\3 Insurance  Liability, auto & Property\Driver request form.pdf100%  
+	    New File  		  125718	S:\3 Operations\3 Insurance  Liability, auto & Property\Employer Change Transmittal Blue Shield.pdf100%  
+	    New File  		  142184	S:\3 Operations\3 Insurance  Liability, auto & Property\ERISA Bond 06 01 2019-06 01 2022.pdf100%  
+	    New File  		   22583	S:\3 Operations\3 Insurance  Liability, auto & Property\ERISA Bond 6.01.2016 Invoice.pdf100%  
+	    New File  		  234811	S:\3 Operations\3 Insurance  Liability, auto & Property\ERISA Bond 6.01.2016.pdf100%  
+	    New File  		   67207	S:\3 Operations\3 Insurance  Liability, auto & Property\ESSCO Driver Sheet_2024.pdf100%  
+	    New File  		  216813	S:\3 Operations\3 Insurance  Liability, auto & Property\ESSCO OCIP Letter 6.20.pdf100%  
+	    New File  		   55359	S:\3 Operations\3 Insurance  Liability, auto & Property\ESSCO W-9 2024.pdf100%  
+	    New File  		  224506	S:\3 Operations\3 Insurance  Liability, auto & Property\ESSCO Wage  Hour Suppliment 2014.pdf100%  
+	    New File  		   80409	S:\3 Operations\3 Insurance  Liability, auto & Property\ESSCO'S Cert of Ins 2015 16.pdf100%  
+	    New File  		   10899	S:\3 Operations\3 Insurance  Liability, auto & Property\essco-revisedinvoice.pdf100%  
+	    New File  		   69594	S:\3 Operations\3 Insurance  Liability, auto & Property\essco-revisedpfa.pdf100%  
+	    New File  		   19968	S:\3 Operations\3 Insurance  Liability, auto & Property\Esscocoveragereview11-12.xls100%  
+	    New File  		  600423	S:\3 Operations\3 Insurance  Liability, auto & Property\ESSO Renewal Certificates 10 01 14.pdf100%  
+	    New File  		   11535	S:\3 Operations\3 Insurance  Liability, auto & Property\Gaps in Coverage Issues.docx100%  
+	    New File  		   27479	S:\3 Operations\3 Insurance  Liability, auto & Property\General Agency Deposit invoice paid Oct. 12th.pdf100%  
+	    New File  		  101431	S:\3 Operations\3 Insurance  Liability, auto & Property\GL-UmbLossruns.pdf  0%  100%  
+	    New File  		  545191	S:\3 Operations\3 Insurance  Liability, auto & Property\Houston Casualty 2015.pdf100%  
+	    New File  		 2672738	S:\3 Operations\3 Insurance  Liability, auto & Property\In Case of Accident-2015 2016.pdf100%  
+	    New File  		 2672737	S:\3 Operations\3 Insurance  Liability, auto & Property\In Case of Accident-Brochure-English 2016-2017 [2727231].pdf100%  
+	    New File  		  309284	S:\3 Operations\3 Insurance  Liability, auto & Property\insurance finance agreement 2012.pdf100%  
+	    New File  		  160267	S:\3 Operations\3 Insurance  Liability, auto & Property\IPFS Payment Schedule 2012-13.pdf100%  
+	    New File  		  160267	S:\3 Operations\3 Insurance  Liability, auto & Property\IPFS Pymt Schedule 2012-13.pdf100%  
+	    New File  		  900884	S:\3 Operations\3 Insurance  Liability, auto & Property\Liability, Auto & Property Insurance claim form.pdf100%  
+	    New File  		   59675	S:\3 Operations\3 Insurance  Liability, auto & Property\license scans.pdf100%  
+	    New File  		    2821	S:\3 Operations\3 Insurance  Liability, auto & Property\maxdesk.ini100%  
+	    New File  		   70734	S:\3 Operations\3 Insurance  Liability, auto & Property\Notice of Tsf liability release form corrected.pdf100%  
+	    New File  		   83580	S:\3 Operations\3 Insurance  Liability, auto & Property\NY Life Iris 01 04 17.pdf100%  
+	    New File  		   20254	S:\3 Operations\3 Insurance  Liability, auto & Property\Payroll & Sales Renewal Info.xlsx100%  
+	    New File  		  740760	S:\3 Operations\3 Insurance  Liability, auto & Property\Philadelphia 2013.pdf100%  
+	    New File  		 2922651	S:\3 Operations\3 Insurance  Liability, auto & Property\PPThumbs.ptn100%  
+	    New File  		   30343	S:\3 Operations\3 Insurance  Liability, auto & Property\Preferred Specialty Deposit inv pd. Sept. 26 2012 Ck 62023.pdf100%  
+	    New File  		   30343	S:\3 Operations\3 Insurance  Liability, auto & Property\Preferred Specialty Deposit invoice pd. Sept. 26 2012 Ck 62023.pdf100%  
+	    New File  		   22933	S:\3 Operations\3 Insurance  Liability, auto & Property\Premium Finance Agreement 2012.pdf100%  
+	    New File  		  101340	S:\3 Operations\3 Insurance  Liability, auto & Property\Premium Finance Agreement 2016 17.pdf100%  
+	    New File  		   15415	S:\3 Operations\3 Insurance  Liability, auto & Property\Property07-09.pdf100%  
+	    New File  		   34807	S:\3 Operations\3 Insurance  Liability, auto & Property\Resale certificate-ESSCO.pdf100%  
+	    New File  		   63696	S:\3 Operations\3 Insurance  Liability, auto & Property\Sparta Policy 022CP 00028.pdf100%  
+	    New File  		   82497	S:\3 Operations\3 Insurance  Liability, auto & Property\State Fund 6 mo report.pdf100%  
+	    New File  		  188928	S:\3 Operations\3 Insurance  Liability, auto & Property\Thumbs.db100%  
+	    New File  		 4604614	S:\3 Operations\3 Insurance  Liability, auto & Property\Traveler's Insurance 2015.pdf100%  
+	    New File  		 1260582	S:\3 Operations\3 Insurance  Liability, auto & Property\Travelers Emp Pract 2010.pdf100%  
+	    New File  		 2954964	S:\3 Operations\3 Insurance  Liability, auto & Property\Tyler's Truck Pink Slip.JPG100%  
+	    New File  		   15268	S:\3 Operations\3 Insurance  Liability, auto & Property\Vehicle Insurance cards 2012-2013.Zip100%  
+	    New File  		 1047767	S:\3 Operations\3 Insurance  Liability, auto & Property\Wage & Hour Supplemental Application.pdf100%  
+	    New File  		   58921	S:\3 Operations\3 Insurance  Liability, auto & Property\Wellpoint for  Rocha Nuez Abdoh Constr Job 1116.pdf100%  
+	    New File  		   73761	S:\3 Operations\2 Policies and Procedures\djc_onesorce wed orders.pdf100%  
+	    New File  		   28345	S:\3 Operations\2 Policies and Procedures\ESL - Resale certificate - ESSCO.pdf100%  
+	    New File  		  112369	S:\3 Operations\2 Policies and Procedures\ESL Credit App, ESSCO Resale Cert.pdf100%  
+	    New File  		   56807	S:\3 Operations\2 Policies and Procedures\ESL Credit Application - Filled out.pdf100%  
+	    New File  		    7350	S:\3 Operations\2 Policies and Procedures\ESSCO Address.pdf100%  
+	    New File  		  228883	S:\3 Operations\2 Policies and Procedures\ESSCO Bldg.pdf100%  
+	    New File  		   10836	S:\3 Operations\2 Policies and Procedures\gas cards Mastercard code words.docx100%  
+	    New File  		   29696	S:\3 Operations\2 Policies and Procedures\Gas Cards.xls100%  
+	    New File  		   28672	S:\3 Operations\2 Policies and Procedures\Letter of Non-Performance.doc100%  
+	    New File  		   83968	S:\3 Operations\2 Policies and Procedures\LETTER OF TRANSMITTAL.doc100%  
+	    New File  		   57920	S:\3 Operations\2 Policies and Procedures\LETTER OF TRANSMITTAL.pdf100%  
+	    New File  		  614222	S:\3 Operations\2 Policies and Procedures\Org Chart_ESSCO_2024.pdf100%  
+	    New File  		  179948	S:\3 Operations\2 Policies and Procedures\PWP Letter 11 20 19.pdf100%  
+	    New File  		  198656	S:\3 Operations\2 Policies and Procedures\PWP Letter 11 26 19 Power.doc100%  
+	    New File  		  198656	S:\3 Operations\2 Policies and Procedures\PWP Letter 11 26 19 Water.doc100%  
+	    New File  		   51603	S:\3 Operations\2 Policies and Procedures\Release of Stop Notice Final.pdf100%  
+	    New File  		  204853	S:\3 Operations\2 Policies and Procedures\Renewal of Standard Form 38 2016.pdf100%  
+	    New File  		  135921	S:\3 Operations\2 Policies and Procedures\Solar Monitoring Manual.docx100%  
+	    New File  		  211599	S:\3 Operations\2 Policies and Procedures\Statement of Information Form SI-200 2020.pdf100%  
+	    New File  		  206094	S:\3 Operations\4 Licensing & Small Business Cert\calctp cirt_tl_2024.pdf100%  
+	    New File  		  130056	S:\3 Operations\4 Licensing & Small Business Cert\City of Pasadena Business Lic_2024.pdf 98%  100%  
+	    New File  		  225908	S:\3 Operations\4 Licensing & Small Business Cert\franchise tax biard.pdf100%  
+	    New File  		   67496	S:\3 Operations\4 Licensing & Small Business Cert\License_City of Irwindale_2024.pdf100%  
+	    New File  		   39849	S:\3 Operations\4 Licensing & Small Business Cert\Resale certificate-ESSCO.pdf100%  
+	    New File  		  154294	S:\3 Operations\4 Licensing & Small Business Cert\Resale Permit Irwindale.pdf100%  
+	    New File  		  115809	S:\3 Operations\4 Licensing & Small Business Cert\SBE Cert 2026.pdf100%  
+	    New File  		  599483	S:\3 Operations\4 Licensing & Small Business Cert\w9_essco_2024.pdf100%  
+	    New File  		   91644	S:\3 Operations\AAA Move\f8822b Change of Address IRS.pdf 99%  100%  
+	    New File  		   11242	S:\3 Operations\AAA Move\List of Address Changes Needed.xlsx100%  
+	    New File  		  102206	S:\3 Operations\5 Legal\APPENDIX B Prompt payment statutes (2012) (2025 review).pdf100%  
+	    New File  		  396864	S:\3 Operations\5 Legal\California Prompt Pay Law Summary.pdf100%  
+	    New File  		  733927	S:\3 Operations\5 Legal\Complete_with_DocuSign_ESSCO_Order_Form_doc.pdf100%  
+	    New File  		 3254419	S:\3 Operations\5 Legal\NECA Subcontractor Contract & Collections Handbook (June 24 2025).pdf100%  
+	    New File  		 1129410	S:\3 Operations\5 Legal\OLD NECA Subcontractor Contract & Collections Handbook (May 2025).pdf100%  
+	    New File  		  160067	S:\3 Operations\5 Legal\Request for Notification of Completion.pdf100%  
+	    New File  		   38400	S:\3 Operations\CORP PROF\10 Largest Projects 2015-2018.doc100%  
+	    New File  		  229888	S:\3 Operations\CORP PROF\BHHS Reference List.doc100%  
+	    New File  		   12382	S:\3 Operations\CORP PROF\Boyd SolarBoyd Solar.docx100%  
+	    New File  		   72934	S:\3 Operations\CORP PROF\CA Statement of Information 2011.pdf100%  
+	    New File  		   72251	S:\3 Operations\CORP PROF\CA Statement of Information.pdf100%  
+	    New File  		   15109	S:\3 Operations\CORP PROF\CLSB Pocket License.pdf100%  
+	    New File  		   34304	S:\3 Operations\CORP PROF\Community College District Projects 2015-12018.doc100%  
+	    New File  		  222208	S:\3 Operations\CORP PROF\COPRPROF Spring 08.doc100%  
+	    New File  		  184832	S:\3 Operations\CORP PROF\COPRPROF Spring 2011 short form.doc100%  
+	    New File  		  363283	S:\3 Operations\CORP PROF\COPRPROF Spring 2011 short form.pdf100%  
+	    New File  		  227840	S:\3 Operations\CORP PROF\COPRPROF Spring 2011.doc100%  
+	    New File  		  261986	S:\3 Operations\CORP PROF\COPRPROF Spring 2011.pdf100%  
+	    New File  		  242688	S:\3 Operations\CORP PROF\COPRPROF Spring 2014.doc100%  
+	    New File  		  239616	S:\3 Operations\CORP PROF\COPRPROF Summer 2013.doc100%  
+	    New File  		  227840	S:\3 Operations\CORP PROF\COPRPROF Winter 2011.doc100%  
+	    New File  		  239104	S:\3 Operations\CORP PROF\COPRPROF Winter 2014.doc100%  
+	    New File  		   67293	S:\3 Operations\CORP PROF\Corp Resolution 2013.pdf100%  
+	    New File  		   36246	S:\3 Operations\CORP PROF\Corp Resolution.pdf100%  
+	    New File  		  177152	S:\3 Operations\CORP PROF\CORPPROF Summerr 2009.doc100%  
+	    New File  		  182784	S:\3 Operations\CORP PROF\CORPPROF Winter 2009.doc100%  
+	    New File  		   72689	S:\3 Operations\CORP PROF\DIR Reregistration 2020-22.pdf100%  
+	    New File  		  179200	S:\3 Operations\CORP PROF\ESSCO PROF July 2016.doc100%  
+	    New File  		  369101	S:\3 Operations\CORP PROF\ESSCO PROF March 2019.pdf100%  
+	    New File  		  158208	S:\3 Operations\CORP PROF\ESSCO PROF Spring 2014.doc100%  
+	    New File  		  183808	S:\3 Operations\CORP PROF\ESSCO PROF Spring 2016.doc100%  
+	    New File  		  182784	S:\3 Operations\CORP PROF\ESSCO PROF Spring 2017.doc100%  
+	    New File  		  183296	S:\3 Operations\CORP PROF\ESSCO PROF Winter 2016.doc100%  
+	    New File  		  234728	S:\3 Operations\CORP PROF\ESSCO PROF Winter 2016.pdf100%  
+	    New File  		  179200	S:\3 Operations\CORP PROF\ESSCO PROF Winter 2017.doc100%  
+	    New File  		18496348	S:\3 Operations\CORP PROF\ESSCO PV Flier References.pdf 45%   56%   68%   85%   96%  100%  
+	    New File  		   15317	S:\3 Operations\CORP PROF\Jobs in Progress 12 31 18.docx100%  
+	    New File  		  228352	S:\3 Operations\CORP PROF\List for TCC July 2011.doc100%  
+	    New File  		     850	S:\3 Operations\CORP PROF\maxdesk.ini100%  
+	    New File  		 1013536	S:\3 Operations\CORP PROF\PPThumbs.ptn100%  
+	    New File  		   90624	S:\3 Operations\CORP PROF\Public School Contracts 2000 2014.doc100%  
+	    New File  		   92672	S:\3 Operations\CORP PROF\Public School Contracts 2000 2015.doc100%  
+	    New File  		   57856	S:\3 Operations\CORP PROF\Public School Contracts 2006 2016.doc100%  
+	    New File  		   99393	S:\3 Operations\CORP PROF\Public School Contracts 2006 2016.pdf100%  
+	    New File  		    1280	S:\3 Operations\CORP PROF\Public Works Contractor Search Results.pdf 98%  100%  
+	    New File  		   97792	S:\3 Operations\CORP PROF\Public Worksl Contracts 2000 2017.doc100%  
+	    New File  		   71168	S:\3 Operations\CORP PROF\Recent Completed Contracts (over $100,000) revised 05-2019.doc100%  
+	    New File  		   53760	S:\3 Operations\CORP PROF\Recent Contracts 2017.doc100%  
+	    New File  		  114550	S:\3 Operations\CORP PROF\Recent Contracts 2017.pdf100%  
+	    New File  		   60416	S:\3 Operations\CORP PROF\Recent Contracts 2018.doc100%  
+	    New File  		   38912	S:\3 Operations\CORP PROF\Recent School Contracts 2014-2019.doc100%  
+	    New File  		   85636	S:\3 Operations\CORP PROF\Recent School Contracts 2014-2019.pdf100%  
+	    New File  		   12674	S:\3 Operations\CORP PROF\Solar Jobs.docx100%  
+	    New File  		   41984	S:\3 Operations\CORP PROF\Thumbs.db100%  
+	    New File  		     162	S:\3 Operations\CORP PROF\~$PRPROF Spring 2011.doc100%  
+	    New File  		     162	S:\3 Operations\CORP PROF\~$PRPROF Summer 2013.doc100%  
+	    New File  		68542676	S:\3 Operations\Code Compliance\2017 NEC Handbook.pdf 90%   93%   96%   97%   99%  100%  
+	    New File  		71716764	S:\3 Operations\Code Compliance\2017 NEC HandbookTL NOTES.pdf 84%   87%   90%   93%   97%  100%  
+	    New File  		45815548	S:\3 Operations\Code Compliance\2020 NEC MCGraw Comentary.pdf100%  
+	    New File  		149457540	S:\3 Operations\Code Compliance\2020 NEC.pdf100%  
+	    New File  		   34535	S:\3 Operations\Code Compliance\C46 Debate_Tyler's Key Points_5.12.21_TL.docx100%  
+	    New File  		  354769	S:\3 Operations\Code Compliance\ECM 83.2 Field Evaluation Organization Labs_Mostafa_8.19.19.pdf100%  
+	    New File  		   18299	S:\3 Operations\Code Compliance\Evidence of Insurance Only - WC - 2019.pdf100%  
+	    New File  		17004124	S:\3 Operations\Code Compliance\NECA_NEIS.zip100%  
+	    New File  		   18944	S:\3 Operations\Code Compliance\Thumbs.db100%  
+	    New File  		   87222	S:\3 Operations\Conferences and Industry Show\ElecCalcs.xlsx100%  
+	    New File  		   23487	S:\3 Operations\DocUCrunch\ESSCO Contract Pre-signature Checklist_250731.xlsx100%  
+	    New File  		    9234	S:\3 Operations\DocUCrunch\ESSCO Spec Checklist Format_250731.xlsx100%  
+	    New File  		   17502	S:\3 Operations\ESSCO Meeting Notes\Chief Financial Officer.docx100%  
+	    New File  		   17368	S:\3 Operations\ESSCO Meeting Notes\Chief Operating Officer.docx100%  
+	    New File  		   48128	S:\3 Operations\ESSCO Meeting Notes\ESSCO Important NUmbers.doc100%  
+	    New File  		  600958	S:\3 Operations\ESSCO Meeting Notes\ESSCO Meeting notes 10-2-13.pdf100%  
+	    New File  		   72734	S:\3 Operations\ESSCO Meeting Notes\ESSCO Meeting Notes 5-23-2014.pdf100%  
+	    New File  		  199168	S:\3 Operations\ESSCO Meeting Notes\ESSCO Mission and Vision.doc100%  
+	    New File  		   15538	S:\3 Operations\ESSCO Meeting Notes\ESSCO Team Meeting 11 30 12.docx100%  
+	    New File  		      94	S:\3 Operations\ESSCO Meeting Notes\maxdesk.ini100%  
+	    New File  		  104026	S:\3 Operations\ESSCO Meeting Notes\PPThumbs.ptn100%  
+	    New File  		   44773	S:\3 Operations\ESSCO Meeting Notes\Zoom Meeting Template.pdf100%  
+	    New File  		  448330	S:\3 Operations\ESSCO Logo\Background Faded.jpg100%  
+	    New File  		  662680	S:\3 Operations\ESSCO Logo\business card.pdf100%  
+	    New File  		  111338	S:\3 Operations\ESSCO Logo\Electric-Service-Supply_new_logo2018_full_white.png 99%  100%  
+	    New File  		   37265	S:\3 Operations\ESSCO Logo\ESSCO Letter head logo w address - Copy.jpg 99%  100%  
+	    New File  		   37265	S:\3 Operations\ESSCO Logo\ESSCO Letter head logo w address.jpg100%  
+	    New File  		  657971	S:\3 Operations\ESSCO Logo\ESSCO Letter head logo w address.pdf100%  
+	    New File  		   54319	S:\3 Operations\ESSCO Logo\ESSCO Letter head logo w address.png100%  
+	    New File  		 4695139	S:\3 Operations\ESSCO Logo\ESSCO LOGO 2018.pdf100%  
+	    New File  		  701299	S:\3 Operations\ESSCO Logo\ESSCO Logo transparency.png100%  
+	    New File  		 4039949	S:\3 Operations\ESSCO Logo\ESSCO Logo very large.pdf100%  
+	    New File  		 3508712	S:\3 Operations\ESSCO Logo\ESSCO Logo.png100%  
+	    New File  		    7306	S:\3 Operations\ESSCO Logo\ESSCO name text.png100%  
+	    New File  		  851844	S:\3 Operations\ESSCO Logo\ESSCO Property Sticker.pdf100%  
+	    New File  		33618367	S:\3 Operations\ESSCO Logo\LOGO Final 2018 - High Res.zip100%  
+	    New File  		     776	S:\3 Operations\ESSCO Logo\plot.log100%  
+	    New File  		  103154	S:\3 Operations\ESSCO Logo\Robburt Card.png100%  
+	    New File  		  180736	S:\3 Operations\ESSCO Logo\Thumbs.db100%  
+	    New File  		71716764	S:\3 Operations\Foreman Docs\2017 NEC Handbook.pdf 42%   43%   46%   49%   54%   55%   58%   59%   64%   65%   68%   70%   73%   74%   77%   80%   81%   83%   87%   92%   93%   97%  100%  
+	    New File  		149746042	S:\3 Operations\Foreman Docs\2020 NEC.pdf 99%  100%  
+	    New File  		   56831	S:\3 Operations\Foreman Docs\a 1..Timesheet..2025.xlsx100%  
+	    New File  		   67072	S:\3 Operations\Foreman Docs\a 10..Safety Ladder Checklist..2025.doc100%  
+	    New File  		   68103	S:\3 Operations\Foreman Docs\a 10..Safety Lift Checklist..2022.docx100%  
+	    New File  		   72068	S:\3 Operations\Foreman Docs\a 2..Material Request..2025.pdf100%  
+	    New File  		   51017	S:\3 Operations\Foreman Docs\a 2..Material Request..2025.xlsx100%  
+	    New File  		   93820	S:\3 Operations\Foreman Docs\a 3..Foreman's Daily Jobsite Journal..2025.pdf100%  
+	    New File  		   52316	S:\3 Operations\Foreman Docs\a 3..Foreman's Daily Jobsite Journal..2025.xlsx100%  
+	    New File  		   51158	S:\3 Operations\Foreman Docs\a 4..Asphalt Order Form..2025.xlsx100%  
+	    New File  		   51436	S:\3 Operations\Foreman Docs\a 4..Concrete Order Form..2025.xlsx100%  
+	    New File  		  447968	S:\3 Operations\Foreman Docs\a 5..IR Test Report..2025.pdf100%  
+	    New File  		   54088	S:\3 Operations\Foreman Docs\a 5..IR Test Report..2025.xlsx100%  
+	    New File  		  516438	S:\3 Operations\Foreman Docs\a 5..Megger Test Report..2025.pdf100%  
+	    New File  		   53998	S:\3 Operations\Foreman Docs\a 5..Megger Test Report..2025.xlsx100%  
+	    New File  		   54408	S:\3 Operations\Foreman Docs\a 5..Torque Test Report Solar Modules.Racking..2025.xlsx100%  
+	    New File  		  459999	S:\3 Operations\Foreman Docs\a 5..Torque Test Report..2025.pdf100%  
+	    New File  		   54742	S:\3 Operations\Foreman Docs\a 5..Torque Test Report..2025.xlsx100%  
+	    New File  		  338849	S:\3 Operations\Foreman Docs\a 6..Solar Test Report..2025.pdf100%  
+	    New File  		   52119	S:\3 Operations\Foreman Docs\a 6..Solar Test Report..2025.xlsx100%  
+	    New File  		  217382	S:\3 Operations\Foreman Docs\a 7..Ground Test Report..2025.pdf100%  
+	    New File  		   51505	S:\3 Operations\Foreman Docs\a 7..Ground Test Report..2025.xlsx100%  
+	    New File  		   76533	S:\3 Operations\Foreman Docs\a 8..Work Order..2025.pdf100%  
+	    New File  		   54033	S:\3 Operations\Foreman Docs\a 8..Work Order..2025.xlsx100%  
+	    New File  		  270923	S:\3 Operations\Foreman Docs\a 9.. Incident Reports..2025.pdf100%  
+	    New File  		   57096	S:\3 Operations\Foreman Docs\a 9.. Incident Reports..2025.xlsx100%  
+	    New File  		  131797	S:\3 Operations\Foreman Docs\aa  Change Order Directive.xlsx100%  
+	    New File  		   23961	S:\3 Operations\Foreman Docs\aa ..Tablet Instructions..2023.docx100%  
+	    New File  		   13361	S:\3 Operations\Foreman Docs\aa Diagnostics Sheet Solar Troubleshooting.xlsx100%  
+	    New File  		   35741	S:\3 Operations\Foreman Docs\aa2 Material Request.pdf100%  
+	    New File  		  110592	S:\3 Operations\Foreman Docs\aaa ESSCO Letterhead2025.doc100%  
+	    New File  		 9419728	S:\3 Operations\Foreman Docs\aaa Full Incident Paperwork for Clinic..2019.pdf 89%  100%  
+	    New File  		 6846754	S:\3 Operations\Foreman Docs\aaa New Hire Packet Blank 2019.pdf100%  
+	    New File  		   97324	S:\3 Operations\Foreman Docs\aaa RFI.xlsx100%  
+	    New File  		  371558	S:\3 Operations\Foreman Docs\aaaHot Work Permit.pdf100%  
+	    New File  		   15474	S:\3 Operations\Foreman Docs\Calfornia Lic.pdf100%  
+	    New File  		   25600	S:\3 Operations\Foreman Docs\commuting with ESSCO's vehical Tax Letter_2019.doc100%  
+	    New File  		   40241	S:\3 Operations\Foreman Docs\DESIGN_PDF ESSCO TITLEBLOCK.pdf100%  
+	    New File  		   83605	S:\3 Operations\Foreman Docs\ElecCalcs.xlsx100%  
+	    New File  		   27098	S:\3 Operations\Foreman Docs\ESSCO Important Office Numbers.pdf100%  
+	    New File  		   24105	S:\3 Operations\Foreman Docs\General Solar PV Installation Checklist 241115.docx100%  
+	    New File  		  126633	S:\3 Operations\Foreman Docs\Inches to Decimal Chart.xlsx100%  
+	    New File  		 2681827	S:\3 Operations\Foreman Docs\Incident Paperwork for Insurance.pdf100%  
+	    New File  		   58891	S:\3 Operations\Foreman Docs\Insurance Cert 2014.pdf100%  
+	    New File  		     981	S:\3 Operations\Foreman Docs\Job Hazard Analysis - Shortcut.lnk100%  
+	    New File  		   44634	S:\3 Operations\Foreman Docs\LETTER OF TRANSMITTAL.docx100%  
+	    New File  		   69926	S:\3 Operations\Foreman Docs\Motor FLA.pdf100%  
+	    New File  		  101972	S:\3 Operations\Foreman Docs\Notice to Emploees- Injuries caused by Work.pdf100%  
+	    New File  		   14639	S:\3 Operations\Foreman Docs\PreEnergy Audit Form.xlsx100%  
+	    New File  		 3114382	S:\3 Operations\Foreman Docs\PV LABELS PLACEMENT GUIDE.pdf 67%  100%  
+	    New File  		   10708	S:\3 Operations\Foreman Docs\Required Info for New Jobs!.docx100%  
+	    New File  		   84438	S:\3 Operations\Foreman Docs\RESALE.pdf100%  
+	    New File  		   13158	S:\3 Operations\Foreman Docs\Solar Energy Tool Base Request Form.xlsx100%  
+	    New File  		  334848	S:\3 Operations\Foreman Docs\Submittal Cover Page.doc100%  
+	    New File  		 1981615	S:\3 Operations\Foreman Docs\Termination Notice_11.pdf100%  
+	    New File  		   11875	S:\3 Operations\Foreman Docs\Termination Slip_477.pdf100%  
+	    New File  		   12288	S:\3 Operations\Foreman Docs\Thumbs.db100%  
+	    New File  		   24950	S:\3 Operations\Foreman Docs\Tyler is an Officer for ESSCO.pdf100%  
+	    New File  		     162	S:\3 Operations\Foreman Docs\~$2 Material Request.pdf100%  
+	    New File  		  162291	S:\3 Operations\IBEW\Electric Service & Supply Co. of Pasadena (2) (Approval Letter).pdf 99%  100%  
+	    New File  		     838	S:\3 Operations\IBEW\IBEW Rates - Shortcut.lnk100%  
+	    New File  		 9052994	S:\3 Operations\JATC Apprenticeship\Appendix D Employer Acceptance Agreement (DOL Standards).zip 99%  100%  
+	    New File  		  557467	S:\3 Operations\NECA\2021 LANECA Trap Tournament Registration Form.pdf100%  
+	    New File  		 2513495	S:\3 Operations\NECA\2022-02_Form 38-11.pdf100%  
+	    New File  		  167540	S:\3 Operations\NECA\2023-02_Form 38-11.pdf100%  
+	    New File  		  187850	S:\3 Operations\NECA\2023-08_Form 38-11.pdf100%  
+	    New File  		  924006	S:\3 Operations\NECA\2025 EEA Form.pdf100%  
+	    New File  		  213230	S:\3 Operations\NECA\Holidays_2023.pdf100%  
+	    New File  		  167449	S:\3 Operations\NECA\Holidays_2024.pdf100%  
+	    New File  		  123217	S:\3 Operations\NECA\Holidays_2025.pdf100%  
+	    New File  		   18593	S:\3 Operations\Prefab\Pre-Fab Order of Operations.xlsx100%  
+	    New File  		  905216	S:\3 Operations\Solar\Solar backup.rfa100%  
+	    New File  		  454656	S:\3 Operations\Solar\Solar Panel First Attempt.0001.rfa100%  
+	    New File  		  462848	S:\3 Operations\Solar\Solar Panel First Attempt.rfa100%  
+	    New File  		  462848	S:\3 Operations\Solar\Solar Panel Sean.0007.rfa100%  
+	    New File  		  462848	S:\3 Operations\Solar\Solar Panel Sean.0008.rfa100%  
+	    New File  		  462848	S:\3 Operations\Solar\Solar Panel Sean.0009.rfa100%  
+	    New File  		  462848	S:\3 Operations\Solar\Solar Panel Sean.rfa100%  
+	    New File  		  901120	S:\3 Operations\Solar\Solar Updated.0013.rfa100%  
+	    New File  		  905216	S:\3 Operations\Solar\Solar Updated.0014.rfa100%  
+	    New File  		  905216	S:\3 Operations\Solar\Solar Updated.0015.rfa100%  
+	    New File  		  942080	S:\3 Operations\Solar\Solar Updated.rfa100%  
