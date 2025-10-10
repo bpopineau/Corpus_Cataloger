@@ -368,6 +368,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tableView.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView.customContextMenuRequested.connect(self._show_table_context_menu)
+        self.tableView.installEventFilter(self)  # Install event filter for Delete key
         header = self.tableView.horizontalHeader()
         header.setStretchLastSection(True)
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
@@ -387,6 +388,7 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.treeView.header().setStretchLastSection(True)
         self.treeView.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self._show_tree_context_menu)
+        self.treeView.installEventFilter(self)  # Install event filter for Delete key
         self.stack.addWidget(self.treeView)
 
         self.statusLabel = QtWidgets.QLabel("Ready")
@@ -405,6 +407,19 @@ class FileExplorerWidget(QtWidgets.QWidget):
         self.lastPageBtn.clicked.connect(self._go_to_last_page)
         
         self.destroyed.connect(lambda *_: self.shutdown())
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        """Handle Delete key press on table and tree views."""
+        if event.type() == QtCore.QEvent.Type.KeyPress:
+            if isinstance(event, QtGui.QKeyEvent):
+                if event.key() == Qt.Key.Key_Delete:
+                    if obj == self.tableView:
+                        self._delete_selected_table_rows()
+                        return True
+                    elif obj == self.treeView:
+                        self._delete_selected_tree_rows()
+                        return True
+        return super().eventFilter(obj, event)
 
     def mark_stale(self) -> None:
         self._needs_reload = True
@@ -1015,28 +1030,29 @@ class FileExplorerWidget(QtWidgets.QWidget):
         QtWidgets.QApplication.clipboard().setText(path)
 
     def _confirm_delete(self, count: int, sample_paths: List[str]) -> bool:
+        """Simplified delete confirmation - single prompt, Enter to confirm."""
         if count <= 0:
-            QtWidgets.QMessageBox.information(self, "Delete from database", "No rows selected.")
             return False
+        
         preview = "\n".join(sample_paths[:5])
         if count > 5:
             preview += f"\n… and {count - 5} more"
+        
         msg = QtWidgets.QMessageBox(self)
         msg.setIcon(QtWidgets.QMessageBox.Icon.Warning)
         msg.setWindowTitle("Delete from database")
         msg.setText(
-            f"This will permanently delete {count} row(s) from the catalog database.\n\n"
-            "Files on disk will NOT be touched."
+            f"Delete {count} row(s) from the catalog database?\n\n"
+            "Files on disk will NOT be touched.\n\n"
+            f"{preview}"
         )
-        msg.setInformativeText(preview)
-        msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Cancel | QtWidgets.QMessageBox.StandardButton.Ok)
-        msg.setDefaultButton(QtWidgets.QMessageBox.StandardButton.Cancel)
+        msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QtWidgets.QMessageBox.StandardButton.Yes)
         ret = msg.exec()
-        return ret == QtWidgets.QMessageBox.StandardButton.Ok
+        return ret == QtWidgets.QMessageBox.StandardButton.Yes
 
     def _delete_rows_by_ids(self, ids: List[int], paths: List[str]) -> None:
         if not ids:
-            QtWidgets.QMessageBox.information(self, "Delete from database", "No rows selected.")
             return
         if not self._confirm_delete(len(ids), paths):
             return
@@ -1052,7 +1068,8 @@ class FileExplorerWidget(QtWidgets.QWidget):
                     cur.execute(f"DELETE FROM files WHERE file_id IN ({placeholders})", chunk)
                     removed += cur.rowcount
                 con.commit()
-            QtWidgets.QMessageBox.information(self, "Delete from database", f"Removed {removed} row(s) from the database.")
+            # Show brief success message
+            self.statusLabel.setText(f"✓ Removed {removed} row(s) from database")
         except Exception as e:
             import traceback
             QtWidgets.QMessageBox.critical(self, "Delete failed", f"Could not delete rows:\n{e}\n\n{traceback.format_exc()}")
@@ -1070,7 +1087,6 @@ class FileExplorerWidget(QtWidgets.QWidget):
     def _delete_selected_table_rows(self) -> None:
         sel = self.tableView.selectionModel().selectedRows()
         if not sel:
-            QtWidgets.QMessageBox.information(self, "Delete from database", "Select one or more rows to delete.")
             return
         ids: List[int] = []
         paths: List[str] = []
@@ -1088,7 +1104,6 @@ class FileExplorerWidget(QtWidgets.QWidget):
     def _delete_selected_tree_rows(self) -> None:
         sel = self.treeView.selectionModel().selectedIndexes()
         if not sel:
-            QtWidgets.QMessageBox.information(self, "Delete from database", "Select one or more files in the tree to delete.")
             return
         # Filter to first column to avoid duplicates per row
         ids: List[int] = []
