@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import argparse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from .config import CatalogConfig, load_config
+from .config import CatalogConfig
 from .db import connect, migrate
 from .util import blake3_file
 
@@ -311,38 +310,9 @@ def hash_all_blake3(
 
 
 def main(argv: Optional[Iterable[str]] = None) -> None:
-    parser = argparse.ArgumentParser(description="Compute BLAKE3 hashes for every catalog file")
-    parser.add_argument("--config", default="config/catalog.yaml", help="Path to catalog config file")
-    parser.add_argument("--force", action="store_true", help="Re-hash files even if a BLAKE3 digest already exists")
-    parser.add_argument("--max-workers", type=int, help="Override worker thread count")
-    parser.add_argument("--include-prefix", action="append", default=None, help="Only process files whose absolute paths start with this prefix (can repeat)")
-    parser.add_argument("--exclude-prefix", action="append", default=None, help="Skip files whose absolute paths start with this prefix (can repeat)")
-    parser.add_argument("--io-bytes-per-sec", type=int, help="Approximate global I/O rate limit in bytes per second")
-    parser.add_argument("--chunk-bytes", type=int, help="Chunk size (bytes) for streaming reads; defaults to config.dedupe.sha_chunk_bytes")
-    parser.add_argument("--mirror-to-sha256", action="store_true", help="Copy the BLAKE3 digest into the sha256 column for compatibility")
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    from .commands import hash_blake3 as hash_cmd
 
-    cfg = load_config(Path(args.config))
-    stats = hash_all_blake3(
-        cfg,
-        force=args.force,
-        max_workers=args.max_workers,
-        include_prefixes=args.include_prefix or [],
-        exclude_prefixes=args.exclude_prefix or [],
-        io_bytes_per_sec=args.io_bytes_per_sec,
-        chunk_bytes=args.chunk_bytes,
-        mirror_to_sha256=args.mirror_to_sha256,
-    )
-
-    print("\n" + "=" * 80)
-    print("BLAKE3 HASH SUMMARY")
-    print("=" * 80)
-    print(f"Total candidates:    {stats.total_candidates:>10,}")
-    print(f"Hashed:              {stats.hashed:>10,}")
-    print(f"Skipped existing:    {stats.skipped_existing:>10,}")
-    print(f"Missing files:       {stats.missing:>10,}")
-    print(f"Errors:              {stats.errors:>10,}")
-    print("=" * 80)
+    hash_cmd.run_cli(list(argv) if argv is not None else None)
 
 
 if __name__ == "__main__":

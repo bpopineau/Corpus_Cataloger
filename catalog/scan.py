@@ -1,13 +1,13 @@
 # catalog/scan.py
 from __future__ import annotations
-import argparse, os, socket, getpass, signal, sys
+import os, socket, getpass, signal, sys
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 from datetime import datetime, timezone
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .config import load_config, CatalogConfig
+from .config import CatalogConfig
 from .db import connect, migrate
 
 def utc(ts: float) -> str:
@@ -299,22 +299,9 @@ def scan_root(root: str, cfg: CatalogConfig, progress_cb: Optional[ProgressCallb
         con.close()
 
 def main(argv: Optional[Iterable[str]] = None) -> None:
-    ap = argparse.ArgumentParser(description="Corpus Cataloger - Scanner")
-    ap.add_argument("--config", required=True)
-    ap.add_argument("--max-workers", type=int, default=None)
-    ap.add_argument("--root", action="append")
-    args = ap.parse_args(list(argv) if argv is not None else None)
+    from .commands import scan as scan_cmd
 
-    cfg = load_config(Path(args.config))
-    if args.max_workers:
-        cfg.scanner.max_workers = args.max_workers
-    roots = cfg.roots[:]
-    if args.root:
-        roots.extend(args.root)
-
-    for r in roots:
-        print(f"[RUN] scanning root: {r}")
-        scan_root(r, cfg)
+    scan_cmd.run_cli(list(argv) if argv is not None else None)
 
 if __name__ == "__main__":
     try:
